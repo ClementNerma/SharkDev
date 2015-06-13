@@ -1,0 +1,57 @@
+/* line 7, ../sass/studio.scss */
+body, #menu, #panel, #tabs {
+  background-color: beige;
+}
+
+/* line 11, ../sass/studio.scss */
+#menu, #panel, #tabs, #editor {
+  position: absolute;
+  z-index: 0;
+}
+
+/* line 16, ../sass/studio.scss */
+noscript {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  font-size: 20px;
+  padding: 10px;
+  z-index: 2;
+  background-color: white;
+}
+
+/* line 28, ../sass/studio.scss */
+#menu {
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 40px;
+  border-bottom: 1px solid #bbbbbb;
+}
+
+/* line 36, ../sass/studio.scss */
+#panel {
+  top: 40px;
+  left: 0;
+  bottom: 0;
+  width: 15%;
+  border-right: 1px solid #bbbbbb;
+}
+
+/* line 44, ../sass/studio.scss */
+#tabs {
+  top: 40px;
+  left: 15%;
+  height: 40px;
+  right: 0;
+}
+
+/* line 51, ../sass/studio.scss */
+#editor {
+  top: 80px;
+  left: 15%;
+  right: 0;
+  bottom: 0;
+}

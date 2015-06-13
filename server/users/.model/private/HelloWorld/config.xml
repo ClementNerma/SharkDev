@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<config>
+	<param name="versionning-keep-durey" value="" />
+	<param name="versionning-maximal-size" value="" />
+	<param name="versionning-maximal-commits" value="" />
+	<param name="versionning-erase-olders" value="" />
+	<param name="files-max-size" value="" />
+	<param name="project-max-size" value="" />
+
+	<param name="link" value="@sharkdev@:HelloWorld" />
+	<param name="link-update" value="ask-user" />
+
+	<project>
+		<param name="type" value="web" />
+		<param name="test-platform" value="localhost" />
+		<param name="upload-ftp:host" value="" />
+		<param name="upload-ftp:user" value="" />
+		<param name="upload-ftp:password" value="" />
+		<param name="allow-file-watchers" value="true" />
+	</project>
+
+	<filewatchers>
+		<watcher type="SASS" for="*.sass" compiler="SASS" native-compiler="true" />
+	</filewatchers>
+</config>

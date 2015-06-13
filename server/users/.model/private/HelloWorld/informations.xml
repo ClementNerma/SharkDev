@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<informations>
+	<attribute name="name" value="Hello World" />
+	<attribute name="author" value="@sharkdev@" />
+	<attribute name="created" value="03-06-2015" />
+	<attribute name="license" value="GPL" />
+	<attribute name="team" value="" />
+</informations>

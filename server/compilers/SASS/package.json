@@ -1,0 +1,11 @@
+{
+	"name": "SASS/SCSS compiler",
+	"license": "MIT",
+	"author": "Medialize",
+	"author-type": "GitHub account",
+
+	"package": {
+		"main": "compiler.js",
+		"acceptDirectories": false
+	}
+}

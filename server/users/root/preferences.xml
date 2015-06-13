@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<preferences>
+
+	<messenger>
+		<events>
+			<event on="receive" do="user-popup" />
+		</events>
+	</messenger>
+
+	<studio>
+		<param name="panelWholerow" value="true" />
+		<param name="" value="" />
+	</studio>
+
+	<editor>
+		<param name="theme" value="monokai" />
+		<param name="init_mode" value="javascript" />
+		<param name="autocomplete" value="true" />
+		<param name="emmet" value="true" />
+		<param name="font-size" value="13" />
+		<native>
+			<param name="highlightActiveLine" value="true"  />
+			<param name="animatedScroll"      value="true"  />
+			<param name="showInvisibles"      value="false" />
+			<param name="showPrintMargin"     value="false" />
+			<param name="showLineNumbers"     value="true"  />
+		</native>
+	</editor>
+
+	<files>
+		<type extension="@default" name="default" mode="plain_text" />
+		<type extension="html" name="HTML" mode="html" />
+		<type extension="js" name="JavaScript" mode="javascript" />
+		<type extension="css" name="CSS" mode="css" />
+		<type extension="json" name="JSON" mode="json" />
+		<type extension="xml" name="XML" mode="xml" />
+		<type extension="c" name="C" mode="c_cpp" />
+		<type extension="cpp" name="C++" mode="c_cpp" />
+		<type extension="cs" name="C#" mode="csharp" />
+		<type extension="gitignore" name="Git Ignore" mode="gitignore" />
+		<type extension="coffee" name="CoffeeScript" mode="coffee" />
+		<type extension="ini" name="INI" mode="ini" />
+		<type extension="jade" name="Jade" mode="jade" />
+		<type extension="java" name="Java" mode="java" />
+		<type extension="less" name="Less" mode="less" />
+		<type extension="lua" name="Lua" mode="lua" />
+		<type extension="make" name="MakeFile" mode="makefile" />
+		<type extension="md" name="MarkDown" mode="markdown" />
+		<type extension="sql" name="SQL" mode="sql" />
+		<type extension="php,php3,php5" name="PHP" mode="php" />
+		<type extension="txt" name="Text" mode="plain_text" />
+		<type extension="ts" name="TypeScript" mode="typescript" />
+		<type extension="vbs" name="Visual Basic Script" mode="vbs" />
+		<type extension="bat" name="Batch Script" mode="batchfile" />
+		<type extension="sh" name="Unix Shell Script" mode="sh" />
+		<type extension="sass" name="SASS" mode="sass" />
+		<type extension="scss" name="SCSS" mode="scss" />
+	</files>
+</preferences>

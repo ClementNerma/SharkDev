@@ -1,0 +1,56 @@
+
+$menuHeight: 40px;
+$panelWidth: 15%;
+$borderColor: #BBBBBB;
+$tabsHeight: 40px;
+
+body, #menu, #panel, #tabs {
+  background-color: beige;
+}
+
+#menu, #panel, #tabs, #editor {
+  position: absolute;
+  z-index: 0;
+}
+
+noscript {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  font-size: 20px;
+  padding: 10px;
+  z-index: 2;
+  background-color: white;
+}
+
+#menu {
+  top: 0;
+  left: 0;
+  right: 0;
+  height: $menuHeight;
+  border-bottom: 1px solid $borderColor;
+}
+
+#panel {
+  top: $menuHeight;
+  left: 0;
+  bottom: 0;
+  width: $panelWidth;
+  border-right: 1px solid $borderColor;
+}
+
+#tabs {
+  top: $menuHeight;
+  left: $panelWidth;
+  height: $tabsHeight;
+  right: 0;
+}
+
+#editor {
+  top: ($menuHeight + $tabsHeight);
+  left: $panelWidth;
+  right: 0;
+  bottom: 0;
+}
