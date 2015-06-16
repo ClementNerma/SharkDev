@@ -1,3 +1,6 @@
+
+var errors = [];
+
 /*
  * Enable console backtrace
  * @type {boolean}
@@ -155,8 +158,14 @@ var Shark = function () {
     this.fs = new function (USER, PASS) {
 
         var _USER = USER, _PASS = PASS;
+        var _commitMode = isDefined(request.commit);
 
-        function serve(action, path, content) {
+        this.serve = function(action, path, content) {
+
+            if(_commitMode) {
+                path = 'commit:' + projectDir.substr(1, projectDir.length - 2) + '@' + projectCommitID + '|' + path.substr(projectDir.length);
+            }
+
             var req = server('user', {
                 data: {
                     do: action,
@@ -167,6 +176,8 @@ var Shark = function () {
             });
 
             if(req.readyState === 4 && req.status === 200) {
+                if(request.commit) console.warn(req.responseText);
+                window.top.a = req;
                 return req.responseText;
             } else {
                 return undefined;
@@ -175,51 +186,139 @@ var Shark = function () {
 
         this.existsDirectory = function (path) {
 
-            return (serve('existsDirectory', path) == 'true' ? true : false);
+            var serve = this.serve('existsDirectory', this.normalizePath(path));
+            if(serve !== 'true') { errors.push(serve); lastError = serve; }
+            return serve === 'true';
 
         };
 
         this.makeDirectory = function (path) {
 
-            return (serve('makeDirectory', path) == 'true' ? true : false);
+            if(_commitMode) return console.error('You are in commit mode !');
+            var serve = this.serve('makeDirectory', this.normalizePath(path));
+            if(serve !== 'true') { errors.push(serve); lastError = serve; }
+            return serve === 'true';
 
         };
 
-        this.readDirectory = function (path) {
+        this.readDirectory = function (path, recursively) {
 
-            return serve('readDirectory', path);
+            try {
+                return JSON.parse(this.serve('readDirectory', this.normalizePath(path), (recursively ? 'recursively' : '')));
+            }
+
+            catch(e) {
+                return false;
+            }
 
         };
+
+        this.getDirectorySize = function (path) {
+
+            var size = parseInt(this.serve('getDirectorySize', this.normalizePath(path)));
+            return Number.isNaN(size) ? false : size;
+
+        }
 
         this.removeDirectory = function (path) {
 
-            return (serve('removeDirectory', path) == 'true' ? true : false);
+            if(_commitMode) return console.error('You are in commit mode !');
+            var serve = this.serve('removeDirectory', this.normalizePath(path));
+            if(serve !== 'true') { errors.push(serve); lastError = serve; }
+            return serve === 'true';
+
+        };
+
+        this.move = this.rename = function (path, newPath) {
+
+            if(_commitMode) return console.error('You are in commit mode !');
+
+            var serve = this.serve('rename', this.normalizePath(path), this.normalizePath(newPath));
+            if(serve !== 'true') { errors.push(serve); lastError = serve; }
+            return serve === 'true';
 
         };
 
         this.existsFile = function (path) {
 
-            return (serve('existsFile', path) == 'true' ? true : false);
+            var serve = this.serve('existsFile', this.normalizePath(path));
+            if(serve !== 'true') { errors.push(serve); lastError = serve; }
+            return serve === 'true';
 
         };
 
         this.writeFile = function (path, content) {
 
-            return (serve('writeFile', path) == 'true' ? true : false);
+            if(_commitMode) return console.error('You are in commit mode !');
+            var serve = this.serve('writeFile', this.normalizePath(path), content);
+            return serve === 'true' ? true : false;
 
         };
 
         this.readFile = function (path) {
 
-            return serve('readFile', path);
+            var ans = this.serve('readFile', this.normalizePath(path));
+            //console.log(ans);
+            return ans;
 
         };
 
         this.removeFile = function (path) {
 
-            return (serve('removeFile', path) == 'true' ? true : false);
+            if(_commitMode) return console.error('You are in commit mode !');
+            var serve = this.serve('removeFile', this.normalizePath(path));
+            if(serve !== 'true') { errors.push(serve); lastError = serve; }
+            return serve === 'true';
 
         };
+
+        this.getFileSize = function (path) {
+
+            var size = parseInt(this.serve('getFileSize', this.normalizePath(path)));
+            return Number.isNaN(size) ? false : size;
+
+        }
+
+        var _currentPath = '/';
+
+        this.normalizePath = function (path) {
+
+            var startWithSlash = (path.substr(0, 1) === '/');
+
+            if(!startWithSlash)
+                path = _currentPath + (_currentPath.substr(-1) !== '/' ? '/' : '') + path;
+
+            var parts = path.split('/');
+            var safe = [];
+            for(var i = 0; i < parts.length; i++) {
+                if(parts[i] && parts[i] !== '.') {
+                    if(parts[i] === '..')
+                        safe.pop();
+                    else
+                        safe.push(parts[i]);
+                }
+            }
+
+            path = safe.join('/');
+
+            return '/' + path;
+
+        };
+
+        this.chdir = function (path) {
+
+            if(path) {
+                path = this.normalizePath('/' + path);
+
+                if(!Shark.fs.existsDirectory(path))
+                    return false;
+
+                _currentPath = path;
+                $('#terminal').terminal().set_prompt('[[b;#82CDB9;]' + _currentPath + '] [[b;white;]$] ');
+            }
+
+            return _currentPath;
+        }
 
         this.existsDir = this.existsDirectory;
         this.mkdir = this.makeDirectory;
@@ -679,6 +778,338 @@ var Shark = function () {
 
     };
 
+    this.speedTest = function(callback) {
+
+        var d = (new Date()).getTime();
+        
+        callback();
+        
+        var f = (new Date()).getTime() - d;
+
+        console.info('Speed test performed : durey of ' + f + ' ms');
+
+        return f;
+
+    };
+
+    var _alias = {};
+
+    var _commands = {
+
+        echo: function() {
+            this.echo(this.all.join(' '));
+        },
+
+        clear: function() {
+            this.clear();
+
+            if(this.argument('t', 'text'))
+                this.echo(this.argument('t', 'text'));
+
+            if(this.argument('n', 'new-line'))
+                this.echo('');
+        },
+
+        editor: function() {
+
+            if(!this.all[0])
+                return this.error('Missing action');
+
+            switch(this.all[0]) {
+
+                case 'create':
+                    if(this.argument('q', 'quiet')) {
+                        Studio.createFile(Shark.fs.chdir(), this.all[1] || 'Untitled.txt', '');
+                    } else {
+                        Studio.createNewFile();
+                    }
+                    break;
+
+                case 'open':
+                    if(!this.all[1])
+                        this.error('Missing file name');
+                    else
+                        Studio.openFile(this.all[1]);
+                    break;
+
+                case 'closeActive':
+                    Studio.closeActiveFile(this.argument('f', 'force'));
+                    break;
+
+                case 'closeAll':
+                    for(var i in files)
+                        if(files.hasOwnProperty(i))
+                            Studio.closeActiveFile(this.argument('f', 'force'));
+                    break;
+
+                default:
+                    this.error('Unknown action : ' + this.all[0]);
+
+            }
+
+        },
+
+        chdir: function() {
+            if(this.all[0]) {
+                if(Shark.fs.chdir(this.all[0]))
+                    this.error('Can\'t change directory : Directory not found');
+            } else {
+                this.echo(Shark.fs.chdir());
+            }
+        },
+
+        mkdir: function() {
+            if(!Shark.fs.mkdir(this.all[0])) {
+                this.error(lastError);
+            }
+        },
+
+        mv: function() {
+            if(Shark.fs.existsFile(this.all[0]) || Shark.fs.existsDirectory(this.all[0])) {
+                if(!Shark.fs.move(this.all[0], this.all[1]))
+                    this.error(lastError);
+            } else {
+                this.error('File not found : ' + this.all[0]);
+            }
+        },
+
+        rm: function() {
+            if(Shark.fs.existsDirectory(this.all[0])) {
+                if(!this.argument('d', 'directory'))
+                    return this.error('You must use -d option to delete directories');
+                else {
+                    if(!Shark.fs.removeDirectory(this.all[0]))
+                        return this.error(lastError);
+                }
+            } else {
+                if(!Shark.fs.existsFile(this.all[0])) {
+                    return this.error('Cannot remove file or directory : path not found');
+                } else {
+                    if(!Shark.fs.removeFile(this.all[0])) {
+                        return this.error(lastError);
+                    }
+                }
+            }
+        },
+
+        touch: function() {
+            if(Shark.fs.existsDirectory(this.all[0])) {
+                return this.error('Cannot make a file because it\'s a directory');
+            }
+
+            if(Shark.fs.existsFile(this.all[0])) {
+                if(this.argument('e', 'erase')) {
+                    if(!Shark.fs.writeFile(this.all[0], ''))
+                        this.error(lastError);
+                } else {
+                    this.error('File already exists : Please use -e to erase file');
+                }
+            } else {
+                if(!Shark.fs.writeFile(this.all[0], ''))
+                    this.error(lastError);
+            }
+        },
+
+        write: function() {
+            if(!Shark.fs[this.argument('a', 'append') ? 'appendFile' : 'writeFile'](this.all[0], this.all[1]))
+                this.error(lastError);
+        },
+
+        read: function() {
+
+            if(this.argument('d', 'directory')) {
+                if(Shark.fs.existsDirectory(this.all[0])) {
+                    return this.error('Directory not found');
+                }
+
+                var d = Shark.fs.readDirectory(this.all[0], this.argument('r', 'recursively'));
+
+                if(!d) {
+                    this.error(lastError);
+                } else {
+                    var r = [];
+
+                    for(var i in d)
+                        if(d.hasOwnProperty(i))
+                            r.push(i);
+
+                    if(r.length)
+                        this.echo(r.join('\n'));
+                }
+            } else {
+                if(!Shark.fs.existsFile(this.all[0])) {
+                    return this.error('File not found');
+                }
+
+                var r = Shark.fs.readFile(this.all[0]);
+
+                if(!isDefined(r)) {
+                    this.error(lastError);
+                } else {
+                    this.echo(r);
+                }
+            }
+        },
+
+        download: function() {
+
+            if(!this.all[0])
+                return this.error('Missing argument 1 : file location');
+
+            if(!this.all[1])
+                return this.error('Missing argument 2 : download URL');
+
+            var ans = server('user', {
+                data: {
+                    do: 'download',
+                    path: Shark.fs.normalizePath(this.all[0]),
+                    content: this.all[1]
+                },
+                async: false
+            });
+
+            if(ans.status === 200) {
+                if(ans.responseText === 'true')
+                    this.echo('Download success');
+                else
+                    this.error('Download failed : ' + ans.responseText);
+            } else {
+                this.error('Failed to contact server (status code : ' + ans.status + ')');
+            }
+
+        },
+
+        alias: function() {
+            if(!this.all[0]) {
+                for(var i in _alias)
+                    if(_alias.hasOwnProperty(i))
+                        this.echo('[[b;green;]' + i + '] = [[b;cyan;]' + _alias[i] + ']');
+
+                return;
+            }
+
+            var pos = this.all[0].indexOf('=');
+
+            if(pos === -1)
+                return this.error('Missing alias value');
+
+            var aliasName  = this.all[0].substr(0, pos);
+            var aliasValue = this.all[0].substr(pos + 1);
+
+            if(!aliasName)
+                return this.error('Missing alias name');
+
+            if(!aliasValue)
+                return this.error('Missing alias value');
+
+            _alias[aliasName] = aliasValue;
+
+        },
+
+        help: function() {
+            for(var i in _commands) {
+                if(_commands.hasOwnProperty(i)) {
+                    this.echo(i);
+                }
+            }
+        }
+
+    };
+
+    this.run = function(command, term) {
+
+        command = command.trimLeft().replace(/( *)(&&|\|\|)( *)/g, '\n');
+        command = command.replace(/\/\*(.*?)\*\//gm, '');
+
+        if(!command)
+            return;
+
+        if(command.substr(0, 2) === '//')
+            return;
+
+        if(command.indexOf('\n') !== -1) {
+            var cmds = command.split('\n');
+
+            for(var i = 0; i < cmds.length; i++) {
+                this.run(cmds[i], term);
+            }
+
+            return;
+        }
+
+        var n, i = command.indexOf(' ');
+        
+        if(i === -1) {
+            if(_alias[command])
+                command = _alias[command];
+        } else {
+            n = command.substr(0, i);
+
+            if(_alias[n]) {
+                command = _alias[n] + command.substr(i);
+            }
+        }
+
+        command = command.match(/(?:[^\s"]+|"[^"]*")+/g);
+        var cmd = command[0];
+        command.shift(0, 1);
+
+        var i, c, short = {}, long = {}, all = [];
+
+        for(i = 0; i < command.length; i++) {
+            if(command[i].substr(0,1)==='"'&&command[i].substr(-1)==='"')
+                command[i] = command[i].substr(1, command[i].length - 2);
+
+            if (command[i].substr(0, 2) === '--') {
+                c = command[i].substr(2);
+
+                if(c.indexOf('=') !== -1)
+                    long[c.substr(0, c.indexOf('='))] = c.substr(c.indexOf('=') + 1);
+                else
+                    long[c] = true;
+            } else if (command[i].substr(0, 1) === '-') {
+                c = command[i].substr(1);
+
+                if(c.indexOf('=') !== -1)
+                    short[c.substr(0, c.indexOf('='))] = c.substr(c.indexOf('=') + 1);
+                else
+                    short[c] = true;
+            } else {
+                all.push(command[i]);
+            }
+        }
+
+        var w = cmd.match(/^([a-z]+)$/g);
+
+        if(!w) {
+            if(cmd.match(/([a-z]+)/g)[0] !== cmd) {
+                cmd = cmd.match(/([a-z]+)/g)[0];
+
+                term.error('You encountered a SharkDev bug ;( : ', {finalize: function($div) {
+                    $div.children().last().append(
+                        $.create('a', {href: '#', content: 'Wrong string length'}).click(wrongStringLength)
+                    )
+                }});
+            } else {
+                return term.error('Invalid command name : ' + cmd + ' (must be lowercase letters !)');
+            }
+        }
+
+        if(!_commands[cmd]) {
+            term.error('Command not found : ' + cmd);
+        } else {
+            term.long = long;
+            term.short = short;
+            term.all = all;
+            term.argument = function(short, long) {
+                return isDefined(this.short[short]) ? this.short[short] : this.long[long];
+            };
+
+            _commands[cmd].call(term, []);
+        }
+
+    };
+
 };
 
 Shark = new Shark();
@@ -688,3 +1119,15 @@ Object.freeze(Shark);
 for (var i in Shark)
     if (Shark.hasOwnProperty(i) && typeof Shark[i] === 'object')
         Object.freeze(Shark[i]);
+
+function wrongStringLength() {
+    bootbox.dialog({
+        title: 'Wrong string length - SharkDev bug',
+        message: 'The <b>Wrong string length</b> bug make the length of a string invalid.<br />For example, "read".length is equals to 9 in this bug !<br />So it makes comparisons impossible...',
+        buttons: {
+            OK: {
+                label: 'OK'
+            }
+        }
+    })
+}

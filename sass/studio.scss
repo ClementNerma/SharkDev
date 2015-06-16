@@ -1,56 +1,79 @@
 
-$menuHeight: 40px;
 $panelWidth: 15%;
-$borderColor: #BBBBBB;
+$terminalHeight: 40%;
+$menuHeight: 50px;
 $tabsHeight: 40px;
 
 body, #menu, #panel, #tabs {
-  background-color: beige;
+    background-color: beige;
 }
 
-#menu, #panel, #tabs, #editor {
-  position: absolute;
-  z-index: 0;
+#menu, #panel, #tabs, #editor, #terminal-container {
+    position: absolute;
+    z-index: 0;
 }
 
 noscript {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  font-size: 20px;
-  padding: 10px;
-  z-index: 2;
-  background-color: white;
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    font-size: 20px;
+    padding: 10px;
+    z-index: 2;
+    background-color: white;
 }
 
 #menu {
-  top: 0;
-  left: 0;
-  right: 0;
-  height: $menuHeight;
-  border-bottom: 1px solid $borderColor;
+    top: 0;
+    left: 0;
+    right: 0;
+    border-bottom: 1px solid #bbbbbb;
+    z-index: 999;
 }
 
 #panel {
-  top: $menuHeight;
-  left: 0;
-  bottom: 0;
-  width: $panelWidth;
-  border-right: 1px solid $borderColor;
+    top: $menuHeight;
+    left: 0;
+    bottom: 0;
+    width: $panelWidth;
+    border-right: 1px solid #bbbbbb;
 }
 
 #tabs {
-  top: $menuHeight;
-  left: $panelWidth;
-  height: $tabsHeight;
-  right: 0;
+    top: $menuHeight;
+    left: $panelWidth;
+    height: $tabsHeight;
+    right: 0;
 }
 
+/* line 52, ../sass/studio.scss */
 #editor {
-  top: ($menuHeight + $tabsHeight);
-  left: $panelWidth;
-  right: 0;
-  bottom: 0;
+    top: ($menuHeight + $tabsHeight);
+    left: $panelWidth;
+    right: 0;
+    bottom: 0;
+}
+
+/* line 59, ../sass/studio.scss */
+#terminal-container {
+    left: $panelWidth;
+    right: 0;
+    bottom: 0;
+    height: $terminalHeight;
+}
+
+/* line 66, ../sass/studio.scss */
+#terminal {
+    position: absolute;
+    top: 28px;
+    left: 0;
+    right: 0;
+    bottom: 0;
+}
+
+/* line 74, ../sass/studio.scss */
+.bootbox table#commitHistory tr:hover {
+    cursor: pointer;
 }

@@ -30,6 +30,18 @@ function missingObjectProperty(v, p) {
     return false;
 }
 
+String.prototype.escapeRegex = function() {
+    return this.toString().replace(/[\-\[\]\/\{\}\(\)\*\+\?\.\\\^\$\|]/g, "\\$&");
+}
+
+String.prototype.trimLeft = function() {
+    return this.toString().replace(/^( *)/, '');
+}
+
+String.prototype.trimRight = function() {
+    return this.toString().replace(/( *)$/, '');
+}
+
 String.prototype.cutHTML = function() {
     return this.toString().replace(/<((.|\r|\n|\r\n)*?)>/g, '');
 }
@@ -85,4 +97,12 @@ Object.prototype.hasOwnProperty = function(prop) {
     var proto = this.__proto__ || this.constructor.prototype;
     return (prop in this) &&
         (!(prop in proto) || proto[prop] !== this[prop]);
+};
+
+Object.size = function(obj) {
+    var size = 0, key;
+    for (key in obj) {
+        if (obj.hasOwnProperty(key)) size++;
+    }
+    return size;
 };

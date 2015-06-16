@@ -4,7 +4,7 @@ body, #menu, #panel, #tabs {
 }
 
 /* line 11, ../sass/studio.scss */
-#menu, #panel, #tabs, #editor {
+#menu, #panel, #tabs, #editor, #terminal-container {
   position: absolute;
   z-index: 0;
 }
@@ -27,13 +27,13 @@ noscript {
   top: 0;
   left: 0;
   right: 0;
-  height: 40px;
   border-bottom: 1px solid #bbbbbb;
+  z-index: 999;
 }
 
 /* line 36, ../sass/studio.scss */
 #panel {
-  top: 40px;
+  top: 50px;
   left: 0;
   bottom: 0;
   width: 15%;
@@ -42,16 +42,42 @@ noscript {
 
 /* line 44, ../sass/studio.scss */
 #tabs {
-  top: 40px;
+  top: 50px;
   left: 15%;
   height: 40px;
   right: 0;
 }
 
-/* line 51, ../sass/studio.scss */
+/* line 52, ../sass/studio.scss */
+/* line 52, ../sass/studio.scss */
 #editor {
-  top: 80px;
+  top: 90px;
   left: 15%;
   right: 0;
   bottom: 0;
+}
+
+/* line 59, ../sass/studio.scss */
+/* line 60, ../sass/studio.scss */
+#terminal-container {
+  left: 15%;
+  right: 0;
+  bottom: 0;
+  height: 40%;
+}
+
+/* line 66, ../sass/studio.scss */
+/* line 68, ../sass/studio.scss */
+#terminal {
+  position: absolute;
+  top: 28px;
+  left: 0;
+  right: 0;
+  bottom: 0;
+}
+
+/* line 74, ../sass/studio.scss */
+/* line 77, ../sass/studio.scss */
+.bootbox table#commitHistory tr:hover {
+  cursor: pointer;
 }

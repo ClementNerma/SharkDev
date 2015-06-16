@@ -1,26 +1,14 @@
 <?php
 
-$xml = new DOMDocument();
-$config = $xml->createElement('config');
-$paramsModel = array(
-	'versionning-keep-durey' => "",
-	'versionning-maximal-size' => "",
-	'versionning-maximal-commits' => "",
-	'versionning-erase-olders' => "",
-	'files-max-size' => "",
-	'project-max-size' => "",
-	'link' => "@sharkdev@:HelloWorld",
-	'link-update' => "ask-user"
+$commitFiles = array(
+	'lol.txt' => true,
+	'xd.txt' => true,
+	'a/p.txt' => true,
+	'dico/words.xml' => true,
+	'dico/ext.xml' => true
 );
 
-foreach($paramsModel as $param => $value) {
-	$node = $xml->createElement('param');
-	$node->setAttribute('name', $param);
-	$node->setAttribute('value', $value);
-	$config->appendChild($node);
-}
-
-$xml->appendChild($config);
-$str = $xml->saveXML();
+$path = 'dico';
+die(json_encode(preg_grep('/^' . str_replace('/', '\\/', preg_quote($path . '/')) . '/', array_keys($commitFiles))));
 
 ?>

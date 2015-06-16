@@ -1,0 +1,9 @@
+
+// Define alias
+alias "rename=mv"
+alias "rn=mv"
+alias "move=mv"
+alias "readdir=read -d"
+alias "cls=clear"
+
+echo Startup file runned
