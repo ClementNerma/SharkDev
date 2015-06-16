@@ -180,11 +180,6 @@ if(!request.project || !loadProject) {
         });
     }
 
-    var script = Shark.fs.readFile('/startup.ssa');
-
-    if(script)
-        Shark.run(script, $('#terminal').terminal());
-
     server('user', {
         data: {
             do: 'getProjects'
@@ -1038,5 +1033,12 @@ $(window).on('load', function() {
     }
 
 });
+
+if(!request.commit) {
+    var script = Shark.fs.readFile('/startup.ssa');
+
+    if(script)
+        Shark.run(script, $('#terminal').terminal());
+}
 
 console.info('SharkDev ' + (request.commit ? 'Commit Viewer' : 'Studio') + ' is ready to work !');

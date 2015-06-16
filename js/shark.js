@@ -308,7 +308,7 @@ var Shark = function () {
         this.chdir = function (path) {
 
             if(path) {
-                path = this.normalizePath('/' + path);
+                path = this.normalizePath(path);
 
                 if(!Shark.fs.existsDirectory(path))
                     return false;
@@ -851,7 +851,7 @@ var Shark = function () {
 
         chdir: function() {
             if(this.all[0]) {
-                if(Shark.fs.chdir(this.all[0]))
+                if(!Shark.fs.chdir(this.all[0]))
                     this.error('Can\'t change directory : Directory not found');
             } else {
                 this.echo(Shark.fs.chdir());
@@ -918,20 +918,35 @@ var Shark = function () {
         read: function() {
 
             if(this.argument('d', 'directory')) {
-                if(Shark.fs.existsDirectory(this.all[0])) {
+                if(!Shark.fs.existsDirectory(this.all[0])) {
                     return this.error('Directory not found');
                 }
 
-                var d = Shark.fs.readDirectory(this.all[0], this.argument('r', 'recursively'));
+                var d = Shark.fs.readDirectory(this.all[0], !isDefined(this.argument('r', 'recursively')));
 
                 if(!d) {
                     this.error(lastError);
                 } else {
-                    var r = [];
+                    function recurse(obj, prefix, recursively) {
+                        if(!prefix) prefix = '';
 
-                    for(var i in d)
-                        if(d.hasOwnProperty(i))
-                            r.push(i);
+                        var r = [];
+                        for(var i in obj) {
+                            if(obj.hasOwnProperty(i))
+                                if(isObject(obj[i])) {
+                                    if(recursively) {
+                                        r = r.concat(recurse(obj[i], prefix + i + '/', true));
+                                    } else {
+                                        r.push(prefix + i);
+                                    }
+                                } else
+                                    r.push(prefix + i);
+                        }
+
+                        return r;
+                    }
+
+                    var r = recurse(d, '', this.argument('r', 'recursively'));
 
                     if(r.length)
                         this.echo(r.join('\n'));
@@ -951,7 +966,7 @@ var Shark = function () {
             }
         },
 
-        download: function() {
+        dw: function() {
 
             if(!this.all[0])
                 return this.error('Missing argument 1 : file location');
@@ -983,7 +998,7 @@ var Shark = function () {
             if(!this.all[0]) {
                 for(var i in _alias)
                     if(_alias.hasOwnProperty(i))
-                        this.echo('[[b;green;]' + i + '] = [[b;cyan;]' + _alias[i] + ']');
+                        this.echo('[[b;green;]' + i + '] = [[;cyan;]' + _alias[i] + ']');
 
                 return;
             }
@@ -1011,6 +1026,13 @@ var Shark = function () {
                 if(_commands.hasOwnProperty(i)) {
                     this.echo(i);
                 }
+            }
+
+            if(this.argument('a', 'alias')) {
+                this.echo('-- alias --');
+                _commands.alias.call(this);
+
+                return;
             }
         }
 

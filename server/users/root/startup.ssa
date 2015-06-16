@@ -5,5 +5,7 @@ alias "rn=mv"
 alias "move=mv"
 alias "readdir=read -d"
 alias "cls=clear"
+alias "cd=chdir"
+alias "download=dw"
 
 echo Startup file runned
