@@ -7,5 +7,7 @@ alias "readdir=read -d"
 alias "cls=clear"
 alias "cd=chdir"
 alias "download=dw"
+alias "copy=cp"
+alias "copydir=cp -d"
 
 echo Startup file runned

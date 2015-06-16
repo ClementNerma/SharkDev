@@ -194,7 +194,7 @@ var Shark = function () {
 
         this.makeDirectory = function (path) {
 
-            if(_commitMode) return console.error('You are in commit mode !');
+            if(_commitMode) { errors.push('You are in commit mode !'); lastError = 'You are in commit mode !'; return false; }
             var serve = this.serve('makeDirectory', this.normalizePath(path));
             if(serve !== 'true') { errors.push(serve); lastError = serve; }
             return serve === 'true';
@@ -222,7 +222,7 @@ var Shark = function () {
 
         this.removeDirectory = function (path) {
 
-            if(_commitMode) return console.error('You are in commit mode !');
+            if(_commitMode) { errors.push('You are in commit mode !'); lastError = 'You are in commit mode !'; return false; }
             var serve = this.serve('removeDirectory', this.normalizePath(path));
             if(serve !== 'true') { errors.push(serve); lastError = serve; }
             return serve === 'true';
@@ -231,9 +231,29 @@ var Shark = function () {
 
         this.move = this.rename = function (path, newPath) {
 
-            if(_commitMode) return console.error('You are in commit mode !');
+            if(_commitMode) { errors.push('You are in commit mode !'); lastError = 'You are in commit mode !'; return false; }
 
             var serve = this.serve('rename', this.normalizePath(path), this.normalizePath(newPath));
+            if(serve !== 'true') { errors.push(serve); lastError = serve; }
+            return serve === 'true';
+
+        };
+
+        this.copyFile = function (path, newPath) {
+
+            if(_commitMode) { errors.push('You are in commit mode !'); lastError = 'You are in commit mode !'; return false; }
+
+            var serve = this.serve('copyFile', this.normalizePath(path), this.normalizePath(newPath));
+            if(serve !== 'true') { errors.push(serve); lastError = serve; }
+            return serve === 'true';
+
+        };
+
+        this.copyDirectory = function (path, newPath) {
+
+            if(_commitMode) { errors.push('You are in commit mode !'); lastError = 'You are in commit mode !'; return false; }
+
+            var serve = this.serve('copyDirectory', this.normalizePath(path), this.normalizePath(newPath));
             if(serve !== 'true') { errors.push(serve); lastError = serve; }
             return serve === 'true';
 
@@ -249,7 +269,7 @@ var Shark = function () {
 
         this.writeFile = function (path, content) {
 
-            if(_commitMode) return console.error('You are in commit mode !');
+            if(_commitMode) { errors.push('You are in commit mode !'); lastError = 'You are in commit mode !'; return false; }
             var serve = this.serve('writeFile', this.normalizePath(path), content);
             return serve === 'true' ? true : false;
 
@@ -265,7 +285,7 @@ var Shark = function () {
 
         this.removeFile = function (path) {
 
-            if(_commitMode) return console.error('You are in commit mode !');
+            if(_commitMode) { errors.push('You are in commit mode !'); lastError = 'You are in commit mode !'; return false; }
             var serve = this.serve('removeFile', this.normalizePath(path));
             if(serve !== 'true') { errors.push(serve); lastError = serve; }
             return serve === 'true';
@@ -871,6 +891,14 @@ var Shark = function () {
             } else {
                 this.error('File not found : ' + this.all[0]);
             }
+        },
+
+        cp: function() {
+            this.echo('Copying...');
+            if(Shark.fs['copy' + (this.argument('d', 'directory') ? 'Directory' : 'File')](this.all[0], this.all[1]))
+                this.error('Copy failed : ' + lastError);
+            else
+                this.echo('Copy done !');
         },
 
         rm: function() {

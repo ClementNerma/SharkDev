@@ -81,10 +81,6 @@ abstract class User {
 
     public static function existsDirectory($path) {
 
-        /*die(var_dump('/^' . str_replace('/', '\\/', preg_quote($path . '/')) . '/'));
-        die(var_dump(preg_grep('/^' . str_replace('/', '\\/', preg_quote($path . '/')) . '/', array_keys(self::$_files))));*/
-
-
         if(self::$_files) return count(preg_grep('/^' . str_replace('/', '\\/', preg_quote($path . '/')) . '/', array_keys(self::$_files))) ? 'true' : 'false';
         return (is_dir($path) ? 'true' : 'false');
     }
@@ -94,7 +90,8 @@ abstract class User {
             if(isset(self::$_files[$path])) {
                 return self::$_files[$path];
             } else {
-                return header("HTTP/1.0 404 Not Found");
+                header("HTTP/1.0 404 Not Found");
+                return ;
             }
         }
 
@@ -108,6 +105,14 @@ abstract class User {
     }
 
     public static function writeFile($path, $content) {
+
+        if(is_dir($path)) {
+            return 'That\'s a directory';
+        }
+
+        if(!is_file($path)) {
+            return 'File not found';
+        }
 
         try {
             file_put_contents($path, $content);
@@ -124,6 +129,13 @@ abstract class User {
     public static function makeDirectory($path) {
         if(self::$_files) return 'Can\'t write storage in commit mode';
 
+        if(is_dir($path)) {
+            return 'This directory already exists';
+        }
+
+        if(is_file($path))
+            return 'That\'s a file';
+
         try {
             mkdir($path);
         }
@@ -139,6 +151,12 @@ abstract class User {
     public static function removeDirectory($path) {
         if(self::$_files) return 'Can\'t write storage in commit mode';
 
+        if(is_file($path))
+            return 'That\'s a file';
+
+        if(!is_dir($path))
+            return 'Directory not found';
+
         try {
             deleteDir($path);
         }
@@ -153,6 +171,12 @@ abstract class User {
 
     public static function removeFile($path) {
         if(self::$_files) return 'Can\'t write storage in commit mode';
+
+        if(is_dir($path))
+            return 'That\'s a directory';
+
+        if(!is_file($path))
+            return 'File not found';
 
         try {
             unlink($path);
@@ -171,8 +195,12 @@ abstract class User {
 
         $newName = normalizePath($newName);
 
-        if(is_file($newName)) {
-            return 'File already exists';
+        if(!file_exists($path)) {
+            return 'File/directory not found';
+        }
+
+        if(file_exists($newName)) {
+            return 'File/directory already exists';
         }
 
         try {
@@ -186,7 +214,70 @@ abstract class User {
         return 'true';
     }
 
+    public static function copyFile($from, $to) {
+        if(self::$_files) return 'Can\'t write storage in commit mode';
+
+        $to = normalizePath($to);
+
+        if(is_dir($from))
+            return 'Origin path is a directory';
+
+        if(!is_file($from)) {
+            return 'File not found';
+        }
+
+        if(is_dir($to))
+            return 'Destination path is a directory';
+
+        if(is_file($to)) {
+            return 'Destination file already exists';
+        }
+
+        try {
+            copy($from, $to);
+        }
+
+        catch(Exception $e) {
+            return 'Internal server error';
+        }
+
+        return 'true';
+    }
+
+    public static function copyDirectory($from, $to) {
+        if(self::$_files) return 'Can\'t write storage in commit mode';
+
+        $to = normalizePath($to);
+
+        if(is_file($from))
+            return 'Origin path is a file';
+
+        if(!is_dir($from)) {
+            return 'File not found';
+        }
+
+        if(is_file($to))
+            return 'Destination path is a file';
+
+        if(is_dir($to)) {
+            return 'Destination path already exists';
+        }
+
+        try {
+            recurse_copy($from, $to);
+        }
+
+        catch(Exception $e) {
+            return 'Internal server error';
+        }
+
+        return 'true';
+    }
+
     public static function readDirectory($dir, $recursively) {
+
+        if(is_file($dir))
+            return 'That\'s a file';
 
         if(!is_dir($dir)) {
             header("HTTP/1.0 404 Not Found");
@@ -345,6 +436,12 @@ abstract class User {
 
     public static function download($location, $url) {
         if(self::$_files) return 'Can\'t write storage in commit mode';
+
+        if(is_dir($location))
+            return 'Destination is a directory';
+
+        if(is_file($location))
+            return 'File already exists';
 
         if(substr($url, 0, 7) !== 'http://' && substr($url, 0, 8) !== 'https://')
             return 'The download URL must start by http:// or https:// for security reasons';

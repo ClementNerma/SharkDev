@@ -826,6 +826,58 @@ var menu = {
         }]
     }],
 
+    Terminal: ['fa fa-terminal', {
+        Show: ['fa fa-eye', function() {
+            $('#terminal-container').slideDown(400);
+        }],
+        Hide: ['fa fa-eye-slash', function() {
+            $('#terminal-container').slideUp(400);
+        }],
+        Clear: ['fa fa-trash-o', function() {
+            $('#terminal').terminal().clear();
+        }],
+        'Save output': ['fa fa-file-text-o', function() {
+            bootbox.dialog({
+                title: 'Save terminal output',
+                message: '<h2>Save terminal output</h2>You will save the terminal content in a file.<br />Please specify the output file path :<br /><br /><input type="text" class="form-control" value="" />',
+                buttons: {
+                    'Save without colors': {
+                        label: 'Save without colors',
+                        className: 'btn-default',
+                        callback: function() {
+                            var outputFile = $(this).find('input.form-control').val();
+                            var output = $('<div></div>').html($('#terminal').terminal().get_output()).text().replace(/\[\[(.*?)\](.*?)\]/g, '$2');
+
+                            if(Shark.fs.writeFile(outputFile, output))
+                                bootbox.alert('Successfully saved output');
+                            else
+                                bootbox.alert('Save failed ! Please try again');
+                        }
+                    },
+
+                    Save: {
+                        label: 'Save',
+                        className: 'btn-primary',
+                        callback: function() {
+                            var outputFile = $(this).find('input.form-control').val();
+                            var output = $('<div></div>').html($('#terminal').terminal().get_output()).text();
+
+                            if(Shark.fs.writeFile(outputFile, output))
+                                bootbox.alert('Successfully saved output');
+                            else
+                                bootbox.alert('Save failed ! Please try again');
+                        }
+                    },
+
+                    Cancel: {
+                        label: 'Cancel',
+                        className: 'btn-success'
+                    }
+                }
+            });
+        }]
+    }],
+
     Versionning: ['fa fa-history', {
         Commit: ['fa fa-check', function() {
             bootbox.prompt('Please input the commit name :', function(name) {
