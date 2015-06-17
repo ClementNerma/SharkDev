@@ -77,3 +77,8 @@ noscript {
 .bootbox table#commitHistory tr:hover {
     cursor: pointer;
 }
+
+#commitViewer {
+  width: 100%;
+  height: 480px;
+}

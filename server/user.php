@@ -110,10 +110,6 @@ abstract class User {
             return 'That\'s a directory';
         }
 
-        if(!is_file($path)) {
-            return 'File not found';
-        }
-
         try {
             file_put_contents($path, $content);
         }

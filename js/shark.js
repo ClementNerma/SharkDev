@@ -163,7 +163,7 @@ var Shark = function () {
         this.serve = function(action, path, content) {
 
             if(_commitMode) {
-                path = 'commit:' + projectDir.substr(1, projectDir.length - 2) + '@' + projectCommitID + '|' + path.substr(projectDir.length);
+                path = 'commit:' + projectDir.substr(1, projectDir.length - 2) + '@' + (request.commit) + '|' + path.substr(projectDir.length);
             }
 
             var req = server('user', {
