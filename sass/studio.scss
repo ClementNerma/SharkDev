@@ -4,11 +4,11 @@ $terminalHeight: 40%;
 $menuHeight: 50px;
 $tabsHeight: 40px;
 
-body, #menu, #panel, #tabs {
+body, #menu, #panel, #tabs, #settings {
     background-color: beige;
 }
 
-#menu, #panel, #tabs, #editor, #terminal-container {
+#menu, #panel, #tabs, #editor, #terminal-container, #settings {
     position: absolute;
     z-index: 0;
 }
@@ -71,6 +71,14 @@ noscript {
     left: 0;
     right: 0;
     bottom: 0;
+}
+
+#settings {
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 1002;
 }
 
 /* line 74, ../sass/studio.scss */

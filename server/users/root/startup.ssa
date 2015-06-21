@@ -9,5 +9,7 @@ alias "cd=chdir"
 alias "download=dw"
 alias "copy=cp"
 alias "copydir=cp -d"
+alias "ls=read -d"
 
+set_panel_refresh_freq 100
 echo Startup file runned

@@ -1,5 +1,7 @@
 <?php
 
+require_once('database.php');
+
 function debug() {
 	$d = debug_backtrace();
 
@@ -58,7 +60,7 @@ abstract class API {
 
 	public static function existsUser($name) {
 
-		$name = API::allSecure($name);
+		$name = self::allSecure($name);
 
 		global $db;
 
@@ -71,10 +73,10 @@ abstract class API {
 
 	public static function getProjects($name) {
 
-		$name = API::allSecure($name);
+		$name = self::allSecure($name);
 		
 		
-		if(!API::existsUser($name))
+		if(!self::existsUser($name))
 			return 'User doesn\'t exists';
 
 		chdir(__DIR__ . '/users/' . $name);
@@ -94,15 +96,23 @@ abstract class API {
 
 	public static function createUser($name, $pass, $mail) {
 
+		chdir(__DIR__);
+
 		global $shark;
 		global $db;
 
-		$name = API::allSecure($name);
-		$pass = API::allSecure($pass);
-		$mail = API::allSecure($mail);
+		$name = self::allSecure($name);
+		$pass = self::allSecure($pass);
+		$mail = self::allSecure($mail);
+
+		if(strlen($name) < 6)
+			return 'Too short user name (min 6 characters)';
+
+		if(strlen($name) > 30)
+			return 'Too long user name (max 30 characters)';
 
 		if(!preg_match('#^([a-zA-Z0-9_\-]+)$#', $name))
-			return 'Bad user name';
+			return 'Bad user name (must be composed of letters, digits, underscore and dashes)';
 
 		if($db->query('SELECT * FROM users WHERE name = "' . $name . '" OR email = "' . $mail . '"')->fetch())
 			return 'User already exists or email is already used';
@@ -127,9 +137,9 @@ abstract class API {
 		global $shark;
 		global $db;
 
-		$name = API::allSecure($name);
+		$name = self::allSecure($name);
 
-		if(!API::existsUser($name))
+		if(!self::existsUser($name))
 			return 'User doesn\'t exists';
 
 		if(!$db->query('DELETE FROM users WHERE name = "' . $username . '"'))
@@ -140,17 +150,21 @@ abstract class API {
 
 	public static function createUserProject($user, $files, $confidentialityLevel = 'private') {
 
+		chdir(__DIR__);
+
 		global $shark;
 		global $db;
 
-		$user = API::allSecure($user);
-		$confidentialityLevel = API::allSecure($confidentialityLevel);
+		$user = self::allSecure($user);
+		$confidentialityLevel = self::allSecure($confidentialityLevel);
 
 		$user = normalizePath($user);
 
 	}
 
 	public static function createUserLinkedProject($toUser, $fromUser, $fromProject, $confidentialityLevel = 'private') {
+
+		chdir(__DIR__);
 
 		global $shark;
 		global $db;
@@ -161,7 +175,7 @@ abstract class API {
 		if($confidentialityLevel !== 'public' && $confidentialityLevel !== 'private')
 			return $shark['msg']['bad-request'];
 
-		if(!API::existsUser($fromUser) && $fromUser !== '.model')
+		if(!self::existsUser($fromUser) && $fromUser !== '.model')
 			return 'User doesn\'t exists';
 
 		if(!is_dir('users/' . $fromUser . '/public/' . $fromProject))
@@ -204,7 +218,7 @@ abstract class API {
 				if(!isset($username))
 					return $shark['msg']['bad-request'];
 
-				return API::getProjects($username);
+				return self::getProjects($username);
 
 				break;
 
@@ -212,7 +226,7 @@ abstract class API {
 				if(!isset($username) || !isset($userpass) || !isset($useremail))
 					return $shark['msg']['bad-request'];
 
-				return API::createUser($username, $userpass, $useremail);
+				return self::createUser($username, $userpass, $useremail);
 
 				break;
 
@@ -220,7 +234,7 @@ abstract class API {
 				if(!isset($username))
 					return $shark['msg']['bad-request'];
 
-				return API::deleteUser($username);
+				return self::deleteUser($username);
 
 			case 'create-user-linked-project':
 				if(!isset($username) || !isset($fromUser) || !isset($fromProject))
@@ -229,7 +243,7 @@ abstract class API {
 				if(!isset($confidentialityLevel))
 					$confidentialityLevel = 'private';
 
-				return API::createUserLinkedProject($username, $fromUser, $fromProject, $confidentialityLevel);
+				return self::createUserLinkedProject($username, $fromUser, $fromProject, $confidentialityLevel);
 
 				break;
 

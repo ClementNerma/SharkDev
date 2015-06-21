@@ -1,0 +1,23 @@
+
+body {
+  background-color: #F1F1F1;
+}
+
+.info {
+  position: absolute;
+  top: 50px;
+  left: 50px;
+}
+
+#form {
+  background-color: #F8F6F2;
+  position: absolute;
+  top: 50px;
+  right: 50px;
+  border: 1px solid gray;
+  padding: 20px;
+}
+
+#error {
+  display: none;
+}

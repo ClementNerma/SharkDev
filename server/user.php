@@ -50,7 +50,7 @@ function read_directory($path, $recursively, $linear = false, $root = null) {
             if(is_dir($path . '/' . $v)) {
                 if(!$linear) {
                     if(!$recursively)
-                        $c[$p ] = 2;
+                        $c[$p] = 2;
                     else
                         $c[$p] = read_directory($path . '/' . $v, true, false, $root);
                 } else
@@ -71,6 +71,10 @@ abstract class User {
 
     public static function setCommitFiles($files) {
         self::$_files = $files;
+    }
+
+    public static function getUserName() {
+        return $_SESSION['shark-user']['username'];
     }
 
     public static function existsFile($path) {
@@ -270,7 +274,47 @@ abstract class User {
         return 'true';
     }
 
-    public static function readDirectory($dir, $recursively) {
+    public static function readDirectory($dir, $recursively, $called = false) {
+
+        if(self::$_files) {
+            if($dir) {
+                $files = preg_grep('/^' . str_replace('/', '\\/', preg_quote($dir . '/')) . '/', array_keys(self::$_files));
+            } else {
+                $files = array_keys(self::$_files);
+            }
+
+            if(!count($files)) {
+                header("HTTP/1.0 404 Not Found");
+                return;
+            }
+
+            $f = array();
+            $d = array();
+
+            foreach($files as $i => $name) {
+                $fname = substr($name, ($dir ? strlen($dir) + 1 : 0));
+
+                if(strpos($fname, '/') === false) {
+                    // that's a file
+                    $f[$fname] = 1;
+                } else {
+                    // that's a directory
+                    $dirName = substr($name, 0, strpos($name, '/'));
+
+                    if($recursively) {
+                        $d[$dirName] = self::readDirectory((strlen($dir) ? $dir . '/' : '') . $dirName, true, true);
+                    } else {
+                        $d[$dirName] = 2;
+                    }
+                }
+
+            }
+
+            $final = array_merge_recursive($f, $d);
+
+            return $called ? $final : json_encode($final);
+
+        }
 
         if(is_file($dir))
             return 'That\'s a file';
@@ -280,7 +324,7 @@ abstract class User {
             return;
         }
 
-        return json_encode(read_directory($dir, !strlen($recursively), false));
+        return json_encode(read_directory($dir, !!strlen($recursively), false));
 
     }
 
@@ -317,6 +361,17 @@ abstract class User {
     }
 
     public static function getFileSize($file) {
+
+        if(self::$_files) {
+
+            if(!isset(self::$_files[$file])) {
+                header("HTTP/1.0 404 Not Found");
+                return;
+            } else {
+                return strlen(self::$_files[$file]);
+            }
+
+        }
 
         if(!is_file($file)) {
             header("HTTP/1.0 404 Not Found");
@@ -453,6 +508,26 @@ abstract class User {
 
     }
 
+    public static function logout() {
+
+        $_SESSION['shark-user']['username'] = false;
+
+        return 'true';
+
+    }
+
+    public static function changePreferences($path, $value) {
+
+        $path = str_replace(';', '', mysql_real_escape_string($path));
+        $xml = simplexml_load_file('preferences.xml');
+
+        eval('$xml->' . preg_replace('#\->@attributes\->(.*)#', '["$1"] = $value', preg_replace('#\->([0-9]+)#', '[$1]', str_replace('/', '->', $path))) . ';');
+
+        file_put_contents('preferences.xml', $xml->asXML());
+        return 'true';
+
+    }
+
 }
 
 chdir(__DIR__);
@@ -466,6 +541,7 @@ if(isset($_SERVER['HTTP_ORIGIN']))
 require_once('config.php');
 require_once('session.php');
 require_once('API.php');
+require_once('database.php');
 
 if(!$_SESSION['shark-user']['username']) {
     die('Needs to be logged in !');
@@ -488,14 +564,6 @@ $path = normalizePath($path);
 
 if($path === false) {
     die($shark['msg']['bad-path']);
-}
-
-try {
-    $db = new PDO('mysql:host=' . $shark['db']['host'] . ';dbname=' . $shark['db']['db'] . ';charset=' . $shark['db']['encoding'], $shark['db']['user'], $shark['db']['pass']);
-}
-
-catch(Exception $e) {
-    die($shark['msg']['database']);
 }
 
 $path = mysql_real_escape_string($path);

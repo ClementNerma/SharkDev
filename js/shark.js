@@ -163,7 +163,7 @@ var Shark = function () {
         this.serve = function(action, path, content) {
 
             if(_commitMode) {
-                path = 'commit:' + projectDir.substr(1, projectDir.length - 2) + '@' + (request.commit) + '|' + path.substr(projectDir.length);
+                path = 'commit:' + (projectDir || '/' + request.project + '/').substr(1, (projectDir || '/' + request.project + '/').length - 2) + '@' + (request.commit) + '|' + (path || '').substr((projectDir || '').length);
             }
 
             var req = server('user', {
@@ -176,8 +176,6 @@ var Shark = function () {
             });
 
             if(req.readyState === 4 && req.status === 200) {
-                if(request.commit) console.warn(req.responseText);
-                window.top.a = req;
                 return req.responseText;
             } else {
                 return undefined;
@@ -305,7 +303,7 @@ var Shark = function () {
 
             var startWithSlash = (path.substr(0, 1) === '/');
 
-            if(!startWithSlash)
+            if(!startWithSlash && path.indexOf(':') === -1)
                 path = _currentPath + (_currentPath.substr(-1) !== '/' ? '/' : '') + path;
 
             var parts = path.split('/');
@@ -321,7 +319,7 @@ var Shark = function () {
 
             path = safe.join('/');
 
-            return '/' + path;
+            return (path.indexOf(':') === -1 ? '/' : '') + path;
 
         };
 
@@ -746,57 +744,6 @@ var Shark = function () {
 
     };
 
-    /**
-     * SharkDev PATH normalizer and checker tool
-     * @type {path}
-     */
-
-    this.path = new function () {
-
-        /**
-         * Normalize a path
-         * @param {string} path
-         * @returns {string|boolean}
-         */
-
-        this.normalize = function (path) {
-
-            if (!isString(path)) return false;
-
-            path = path.replace(/^(\/+)/g, '').replace(/(\/+)$/g, '').replace(/(\/+)/g, '/');
-            path = path.replace(/(\r|\n|\r\n|"|')/g, '');
-            path = '/' + path + '/';
-
-            /* Normalize path */
-            while (path.match(/(\/|^)\.(\/|$)/)) path = path.replace(/(\/|^)\.(\/|$)/g, '$1$2');
-
-            path = path.replace(/(\/|^)(.+)\/(.+)\/..(\/|$)/g, '$2$4');
-
-            while (path.match(/^\.\.\//))
-                path = path.replace(/^\.\.\//g, '');
-
-            return path.replace(/^\//g, '').replace(/\/$/g, '');
-
-        };
-
-        /**
-         * Check if the parent path include the child path
-         * @param {string} child Child path
-         * @param {string} main Parent path
-         * @returns {boolean}
-         */
-
-        this.include = function (child, main) {
-
-            if (!isString(child) || !isString(main)) return false;
-            child = this.normalize(child);
-            main = this.normalize(main);
-
-            return main === child.substr(0, main.length);
-
-        };
-
-    };
 
     this.speedTest = function(callback) {
 
@@ -812,19 +759,37 @@ var Shark = function () {
 
     };
 
-    var _alias = {};
+    this.autocompleteCommand = function(command) {
 
+        var cmds = [];
+
+        for(var i in _commands) {
+            if(_commands.hasOwnProperty(i))
+                cmds.push(i);
+        }
+
+        for(var i in _alias) {
+            if(_alias.hasOwnProperty(i))
+                cmds.push(i);
+        }
+
+        return cmds;
+
+    };
+
+    var _vcsCommit;
+    var _alias = {};
     var _commands = {
 
         echo: function() {
-            this.echo(this.all.join(' '));
+            this.echo(this.all.join(' ').replace(/\[\[(.*?)\](.*?)\]/g, '$2'));
         },
 
         clear: function() {
             this.clear();
 
             if(this.argument('t', 'text'))
-                this.echo(this.argument('t', 'text'));
+                this.echo(this.argument('t', 'text').replace(/\[\[(.*?)\](.*?)\]/g, '$2'));
 
             if(this.argument('n', 'new-line'))
                 this.echo('');
@@ -869,18 +834,89 @@ var Shark = function () {
 
         },
 
+        vcs: function() {
+
+            if(this.all[0] === 'use') {
+                if(!this.all[1]) {
+                    _vcsCommit = false;
+                    this.echo('Deleted commit switch');
+                } else {
+                    _vcsCommit = this.all[1];
+                    this.echo('Switched to commit : ' + _vcsCommit);
+                    return;
+                }
+            }
+
+            if(!_vcsCommit && !isString(this.argument('c', 'commit')))
+                return this.error('Missing commit ID');
+
+            if(!this.all[0])
+                return this.error('Missing action');
+
+            var dir = 'commit:' + projectDir.substr(1, projectDir.length - 2) + '@' + (this.argument('c', 'commit') || _vcsCommit) + '|';
+
+            switch(this.all[0]) {
+
+                case 'read':
+                    if(!this.all[1]) {
+                        return this.error('Missing file name');
+                    }
+
+                    if(!this.argument('f', 'from-root')) {
+                        this.all[1] = 'files/' + this.all[1];
+                    }
+
+                    var content = Shark.fs.readFile(dir + this.all[1]);
+
+                    if(!isDefined(content))
+                        this.error(lastError);
+                    else
+                        this.echo(content.replace(/\[\[(.*?)\](.*?)\]/g, '$2'));
+
+                    break;
+
+                case 'ls':
+                    if(!this.all[1]) {
+                        this.all[1] = '';
+                    }
+
+                    if(!this.argument('f', 'from-root')) {
+                        this.all[1] = 'files/' + this.all[1];
+                    }
+
+                    var d = Shark.fs.readDirectory(dir + this.all[1], isDefined(this.argument('r', 'recursively')));
+
+                    if(!d) {
+                        this.error(lastError);
+                    } else {
+                        if(d.length)
+                            this.echo(d.join('\n').replace(/\[\[(.*?)\](.*?)\]/g, '$2'));
+                    }
+
+                    break;
+
+                default:
+                    this.error('Unknown action : ' + this.all[0]);
+                    break;
+            }
+
+        },
+
         chdir: function() {
             if(this.all[0]) {
                 if(!Shark.fs.chdir(this.all[0]))
                     this.error('Can\'t change directory : Directory not found');
             } else {
-                this.echo(Shark.fs.chdir());
+                this.echo(Shark.fs.chdir().replace(/\[\[(.*?)\](.*?)\]/g, '$2'));
             }
         },
 
         mkdir: function() {
-            if(!Shark.fs.mkdir(this.all[0])) {
-                this.error(lastError);
+
+            for(var i = 0; i < this.all.length; i++) {
+                if(!Shark.fs.mkdir(this.all[i])) {
+                    this.error('Can\'t make "' + this.all[i] + '" : ' + lastError);
+                }
             }
         },
 
@@ -946,11 +982,14 @@ var Shark = function () {
         read: function() {
 
             if(this.argument('d', 'directory')) {
+
+                if(!this.all[0]) this.all[0] = '.';
+
                 if(!Shark.fs.existsDirectory(this.all[0])) {
                     return this.error('Directory not found');
                 }
 
-                var d = Shark.fs.readDirectory(this.all[0], !isDefined(this.argument('r', 'recursively')));
+                var d = Shark.fs.readDirectory(this.all[0], isDefined(this.argument('r', 'recursively')));
 
                 if(!d) {
                     this.error(lastError);
@@ -1026,7 +1065,7 @@ var Shark = function () {
             if(!this.all[0]) {
                 for(var i in _alias)
                     if(_alias.hasOwnProperty(i))
-                        this.echo('[[b;green;]' + i + '] = [[;cyan;]' + _alias[i] + ']');
+                        this.echo('[[b;green;]' + i.replace(/\[\[(.*?)\](.*?)\]/g, '$2') + '] = [[;cyan;]' + _alias[i].replace(/\[\[(.*?)\](.*?)\]/g, '$2') + ']');
 
                 return;
             }
@@ -1052,7 +1091,7 @@ var Shark = function () {
         help: function() {
             for(var i in _commands) {
                 if(_commands.hasOwnProperty(i)) {
-                    this.echo(i);
+                    this.echo(i.replace(/\[\[(.*?)\](.*?)\]/g, '$2'));
                 }
             }
 
@@ -1062,9 +1101,34 @@ var Shark = function () {
 
                 return;
             }
+        },
+
+        user: function() {
+            var r = Shark.fs.serve('getUserName');
+
+            if(!r)
+                this.error('Can\'t get user name (can\'t connect to server)');
+            else
+                this.echo(r.replace(/\[\[(.*?)\](.*?)\]/g, '$2'));
+        },
+
+        set_panel_refresh_freq: function() {
+            var freq = parseInt(this.all[0]);
+
+            if(Number.isNaN(freq))
+                this.error('Frequency must be a number')
+            else if(freq < 50)
+                this.error('Frequency too lower (min 50 miliseconds)');
+            else {
+                clearInterval(window.panelRefresh);
+                window.panelRefresh = setInterval(window.panelRefreshCallback, freq);
+            }
+
         }
 
     };
+
+    Object.freeze(_commands);
 
     this.run = function(command, term) {
 
@@ -1107,6 +1171,26 @@ var Shark = function () {
         var i, c, short = {}, long = {}, all = [];
 
         for(i = 0; i < command.length; i++) {
+
+            command[i] = command[i]
+                .replace(/`(.*?)`/g, function(match, $1) {
+                    var emulTerm = {
+                        _text: '',
+                        _error: '',
+                        echo: function(text) { this._text += '\n' + text; if(this._text.substr(0, 1) == '\n') this._text = this._text.substr(1); },
+                        error: function(error) { this._error += '\n' + error; if(this._error.substr(0, 1) == '\n') this._error = this._error.substr(1); },
+                        clear: function() { this.text = ''; this.error = ''; }
+                    };
+
+                    Shark.run($1, emulTerm);
+
+                    if(emulTerm._error) {
+                        return '';
+                    } else {
+                        return emulTerm._text;
+                    }
+                });
+
             if(command[i].substr(0,1)==='"'&&command[i].substr(-1)==='"')
                 command[i] = command[i].substr(1, command[i].length - 2);
 
@@ -1129,11 +1213,12 @@ var Shark = function () {
             }
         }
 
-        var w = cmd.match(/^([a-z]+)$/g);
+        var match = /a-z_\-0-9/g;
+        var w = cmd.match(/^([a-z_\-0-9]+)$/g);
 
         if(!w) {
-            if(cmd.match(/([a-z]+)/g)[0] !== cmd) {
-                cmd = cmd.match(/([a-z]+)/g)[0];
+            if(cmd.match(match)[0] !== cmd) {
+                cmd = cmd.match(match)[0];
 
                 term.error('You encountered a SharkDev bug ;( : ', {finalize: function($div) {
                     $div.children().last().append(
@@ -1179,5 +1264,5 @@ function wrongStringLength() {
                 label: 'OK'
             }
         }
-    })
+    });
 }

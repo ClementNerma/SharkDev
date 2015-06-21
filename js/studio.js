@@ -20,27 +20,29 @@ function server(page, params) {
 
 var projectDir, contextMenuPath, selectedNode, createNewFilePath, commitMessage, lastPanelDataTree;
 var refreshPanelDurey, openingFile, selectedCommitID, _sayedCommitMode, _sayedSavedFile;
+var userSettingsEditing;
 
+var ace_themes = ['ambiance', 'chaos', 'chrome', 'clouds', 'clouds_midnight', 'cobalt', 'crimson_editor', 'dawn', 'dreamweaver', 'eclipse', 'github', 'idle_fingers', 'iplastic', 'katzenmilch', 'kr_theme', 'kuroir', 'merbivore', 'merbivore_soft', 'mono_industrial', 'monokai', 'pastel_on_dark', 'solarized_dark', 'solarized_light', 'sqlserver', 'terminal', 'textmate', 'tomorrow', 'tomorrow_night_blue', 'tomorrow_night_bright', 'tomorrow_night_eighties', 'tomorrow_night', 'twilight', 'vibrant_ink', 'xcode'];
+var ace_modes = ['abap', 'abc', 'actionscript', 'ada', 'apache_conf', 'applescript', 'asciidoc', 'assembly_x86', 'autohotkey', 'batchfile', 'c9search', 'c_cpp', 'cirru', 'clojure', 'cobol', 'coffee', 'coldfusion', 'csharp', 'css', 'curly', 'dart', 'diff', 'django', 'd', 'dockerfile', 'dot', 'eiffel', 'ejs', 'elixir', 'elm', 'erlang', 'forth', 'ftl', 'gcode', 'gherkin', 'gitignore', 'glsl', 'golang', 'groovy', 'haml', 'handlebars', 'haskell', 'haxe', 'html', 'html_ruby', 'ini', 'io', 'jack', 'jade', 'java', 'javascript', 'jsoniq', 'json', 'jsp', 'jsx', 'julia', 'latex', 'lean', 'less', 'liquid', 'lisp', 'live_script', 'livescript', 'logiql', 'lsl', 'lua', 'luapage', 'lucene', 'makefile', 'markdown', 'mask', 'matlab', 'mel', 'mips_assembler', 'mipsassembler', 'mushcode', 'mysql', 'nix', 'objectivec', 'ocaml', 'pascal', 'perl', 'pgsql', 'php', 'plain_text', 'powershell', 'praat', 'prolog', 'properties', 'protobuf', 'python', 'rdoc', 'rhtml', 'r', 'ruby', 'rust', 'sass', 'scad', 'scala', 'scheme', 'scss', 'sh', 'sjs', 'smarty', 'snippets', 'soy_template', 'space', 'sql', 'sqlserver', 'stylus', 'svg', 'tcl', 'tex', 'textile', 'text', 'toml', 'twig', 'typescript', 'vala', 'vbscript', 'velocity', 'verilog', 'vhdl', 'xml', 'xquery', 'yaml'];
+
+$('#settings').hide();
 $('noscript').remove();
 $('#projects').modal({keyboard:false}).modal('hide');
 $('#terminal').terminal(function(command, term) {
     Shark.run(command, term);
 },{
-    //greetings: ' ______                                                ___      \n/\\__  _\\                          __                  /\\_ \\     \n\\/_/\\ \\/    __   _ __    ___ ___ /\\_\\    ___      __  \\//\\ \\    \n   \\ \\ \\  /\'__`\\/\\`\'__\\/\' __` __`\\/\\ \\ /\' _ `\\  /\'__`\\  \\ \\ \\   \n    \\ \\ \\/\\  __/\\ \\ \\/ /\\ \\/\\ \\/\\ \\ \\ \\/\\ \\/\\ \\/\\ \\L\\.\\_ \\_\\ \\_ \n     \\ \\_\\ \\____\\\\ \\_\\ \\ \\_\\ \\_\\ \\_\\ \\_\\ \\_\\ \\_\\ \\__/.\\_\\/\\____\\\n      \\/_/\\/____/ \\/_/  \\/_/\\/_/\\/_/\\/_/\\/_/\\/_/\\/__/\\/_/\\/____/\n                                                                ',
     greetings: ' ____    __                       __      ____                        ______                                                ___      \n/\\  _`\\ /\\ \\                     /\\ \\    /\\  _`\\                     /\\__  _\\                          __                  /\\_ \\     \n\\ \\,\\L\\_\\ \\ \\___      __     _ __\\ \\ \\/\'\\\\ \\ \\/\\ \\     __   __  __   \\/_/\\ \\/    __   _ __    ___ ___ /\\_\\    ___      __  \\//\\ \\    \n \\/_\\__ \\\\ \\  _ `\\  /\'__`\\  /\\`\'__\\ \\ , < \\ \\ \\ \\ \\  /\'__`\\/\\ \\/\\ \\     \\ \\ \\  /\'__`\\/\\`\'__\\/\' __` __`\\/\\ \\ /\' _ `\\  /\'__`\\  \\ \\ \\   \n   /\\ \\L\\ \\ \\ \\ \\ \\/\\ \\L\\.\\_\\ \\ \\/ \\ \\ \\\\`\\\\ \\ \\_\\ \\/\\  __/\\ \\ \\_/ |     \\ \\ \\/\\  __/\\ \\ \\/ /\\ \\/\\ \\/\\ \\ \\ \\/\\ \\/\\ \\/\\ \\L\\.\\_ \\_\\ \\_ \n   \\ `\\____\\ \\_\\ \\_\\ \\__/.\\_\\\\ \\_\\  \\ \\_\\ \\_\\ \\____/\\ \\____\\\\ \\___/       \\ \\_\\ \\____\\\\ \\_\\ \\ \\_\\ \\_\\ \\_\\ \\_\\ \\_\\ \\_\\ \\__/.\\_\\/\\____\\\n    \\/_____/\\/_/\\/_/\\/__/\\/_/ \\/_/   \\/_/\\/_/\\/___/  \\/____/ \\/__/         \\/_/\\/____/ \\/_/  \\/_/\\/_/\\/_/\\/_/\\/_/\\/_/\\/__/\\/_/\\/____/\n                                                                                                                                     \n                                                                                                                                     ',
     prompt: '$ ',
-    name: 'terminal'
+    name: 'terminal',
+    tabcompletion: true,
+    completion: function(terminal, command, callback) {
+        callback(Shark.autocompleteCommand());
+    }
 });
 $('#terminal-container').slideToggle(0);
-$('#terminal').terminal();
 $('#commitViewer').hide();
 
-var dconf = server('user', {
-    data: {
-        do: 'getPreferences'
-    },
-    async: false
-}).responseText;
+var dconf = Shark.fs.serve('getPreferences');
 
 try {
     dconf = JSON.parse(dconf);
@@ -70,7 +72,7 @@ var c, config = {
 
 for(var i in dconf.files.type) {
     if(dconf.files.type.hasOwnProperty(i)) {
-        c = dconf.files.type[i]['@attributes'];
+        c = cloneObject(dconf.files.type[i]['@attributes']);
 
         if(c['extension'].indexOf(',') === -1)
             config.fileTypes[c['extension']] = c;
@@ -85,32 +87,26 @@ for(var i in dconf.files.type) {
     }
 }
 
-for(var i in dconf.editor.native.param) {
-    if(dconf.editor.native.param.hasOwnProperty(i)) {
-        c = dconf.editor.native.param[i]['@attributes'];
-        if(c['value'] === 'true') c['value'] = true;
-        if(c['value'] === 'false') c['value'] = false;
-        config.editor.native[c['name']] = c['value'];
+function config_set(configObject, params) {
+    if(params.length > 1) {
+        for(var i in params) {
+            if(params.hasOwnProperty(i)) {
+                c = params[i]['@attributes'];
+                if(c['value'] === 'true') c['value'] = true;
+                if(c['value'] === 'false') c['value'] = false;
+                configObject[c['name']] = c['value'];
+            }
+        }
+    } else {
+        c = params['@attributes'];
+        configObject[c['name']] = c['value'];
     }
+
 }
 
-for(var i in dconf.editor.param) {
-    if(dconf.editor.param.hasOwnProperty(i)) {
-        c = dconf.editor.param[i]['@attributes'];
-        if(c['value'] === 'true') c['value'] = true;
-        if(c['value'] === 'false') c['value'] = false;
-        config.editor[c['name']] = c['value'];
-    }
-}
-
-for(var i in dconf.studio.param) {
-    if(dconf.studio.param.hasOwnProperty(i)) {
-        c = dconf.studio.param[i]['@attributes'];
-        if(c['value'] === 'true') c['value'] = true;
-        if(c['value'] === 'false') c['value'] = false;
-        config.studio[c['name']] = c['value'];
-    }
-}
+config_set(config.editor, dconf.editor.param);
+config_set(config.editor.native, dconf.editor.native.param);
+config_set(config.studio, dconf.studio.param);
 
 var editor = ace.edit('editor');
 editor.$blockScrolling = Infinity;
@@ -165,7 +161,7 @@ if(request.project)
 Shark.fs.chdir('/');
 
 projectCommitID = request.commit;
-var loadProject = (request.project && Shark.fs.existsDirectory(request.project)) ? request.project : false;
+var loadProject = (request.project && Shark.fs.existsDirectory('/' + request.project)) ? '/' + request.project : false;
 
 if(!request.project || !loadProject) {
     if(!loadProject && isString(loadProject)) {
@@ -233,214 +229,201 @@ var Studio = function() {
 
         projectDir = Shark.fs.normalizePath('/' + dir) + '/';
 
-        server('user', {
-            data: {
-                do: 'readDirectory',
-                path: projectDir + 'files'
-            },
-            success: function(data) {
-                try {
-                    data = JSON.parse(data);
-                }
+        var data = Shark.fs.readDirectory(projectDir + 'files', true);
 
-                catch(e) {
-                    this.error(this);
-                }
-
-                function recurse(obj) {
-                    var r = {};
-
-                    for(var i in obj) {
-                        if(obj.hasOwnProperty(i))
-                            if (obj[i] != 1)
-                                r[i] = obj[i];
+        if(!files) {
+            bootbox.dialog({
+                title: 'Server error',
+                message: 'Can\'t connect to server',
+                buttons: {
+                    OK: {
+                        label: 'OK',
+                        className: 'btn btn-default'
                     }
+                }
+            });
+        } else {
+            function recurse(obj) {
+                var r = {};
 
-                    for(var i in obj) {
-                        if(obj.hasOwnProperty(i))
-                            if (obj[i] == 1)
-                                r[i] = obj[i];
-                    }
-
-                    var final = [];
-
-                    for(var i in r)
-                        if(obj.hasOwnProperty(i)) {
-                            if (obj[i] == 1) {
-                                var ext = i.substr(i.lastIndexOf('.') + 1);
-                                var icon = ((config.fileTypes[ext] || {}).icon || config.fileTypes['@default'].icon)
-
-                                if(icon.substr(0, 3) === 'fa:')
-                                    icon = 'fa fa-' + icon.substr(3);
-
-                                final.push({
-                                    text: i,
-                                    icon: icon
-                                });
-                            } else {
-                                final.push({
-                                    text: i,
-                                    icon: 'fa fa-folder-o',
-                                    state: {
-                                        opened: false,
-                                        selected: false
-                                    },
-                                    children: recurse(obj[i])
-                                });
-                            }
-                        }
-
-                    return final;
+                for(var i in obj) {
+                    if(obj.hasOwnProperty(i))
+                        if (obj[i] != 1)
+                            r[i] = obj[i];
                 }
 
-                var plugins = ['contextmenu'];
-                if(config.studio['panelWholerow'])
-                    plugins.push('wholerow');
+                for(var i in obj) {
+                    if(obj.hasOwnProperty(i))
+                        if (obj[i] == 1)
+                            r[i] = obj[i];
+                }
 
-                var genericRenameAction = function() {
-                    bootbox.prompt('New directory name ?', function(name) {
-                        if(!Shark.fs.rename(contextMenuPath, name)) {
-                            bootbox.alert('Can\'t rename directory !');
+                var final = [];
+
+                for(var i in r)
+                    if(obj.hasOwnProperty(i)) {
+                        if (obj[i] == 1) {
+                            var ext = i.substr(i.lastIndexOf('.') + 1);
+                            var icon = ((config.fileTypes[ext] || {}).icon || config.fileTypes['@default'].icon)
+
+                            if(icon.substr(0, 3) === 'fa:')
+                                icon = 'fa fa-' + icon.substr(3);
+
+                            final.push({
+                                text: i,
+                                icon: icon
+                            });
                         } else {
-                            var link = selectedNode.find('a')[0];
-                            link.innerHTML = link.innerHTML.substr(0, link.innerHTML.length - $(link).text().length) + name;
-                        }
-                    });
-                };
-
-                data = recurse(data);
-
-                function r(o, c) {
-                    if(!isDefined(c))
-                        return false;
-
-                    for(var i in o) {
-                        if(o.hasOwnProperty(i)) {
-                            if(!isDefined(c[i]) && isDefined(o[i]))
-                                return false;
-                            else if((isString(o[i]) || isNumber(o[i])) && o[i] != c[i])
-                                return false;
-                            else if(isObject(o[i]))
-                                if(!r(o[i], c[i]))
-                                    return false;
+                            final.push({
+                                text: i,
+                                icon: 'fa fa-folder-o',
+                                state: {
+                                    opened: false,
+                                    selected: false
+                                },
+                                children: recurse(obj[i])
+                            });
                         }
                     }
 
-                    for(var i in c) {
-                        if(c.hasOwnProperty(i)) {
-                            if(!isDefined(o[i]))
-                                return false;
-                        }
-                    }
+                return final;
+            }
 
-                    return true;
-                }
+            var plugins = ['contextmenu'];
+            if(config.studio.panelWholerow)
+                plugins.push('wholerow');
 
-                if(r(data, lastPanelDataTree))
-                    return;
-
-                lastPanelDataTree = data;
-
-                $('#panel').replaceWith($.create('div', {id: 'panel', style: $('#panel').attr('style')}).jstree({
-                    core: {
-                        data: data,
-                        check_callback: true
-                    },
-                    plugins: plugins,
-                    contextmenu: {
-                        items: function($node) {
-                            selectedNode = $('#' + $node.id);
-                            var path = projectDir + getFullPath($node.id);
-                            contextMenuPath = path;
-
-                            if(Shark.fs.existsDirectory(path)) {
-                                // that's a directory
-
-                                return {
-                                    New: {
-                                        label: 'New',
-                                        submenu: {
-                                            HTML: {
-                                                label: 'HTML',
-                                                action: function() {
-                                                   Studio.createNewFile(contextMenuPath, 'HTML', ['htm', 'html']);
-                                                }
-                                            },
-                                            CSS: {
-                                                label: 'CSS',
-                                                action: function() {
-                                                    Studio.createNewFile(contextMenuPath, 'CSS', ['css']);
-                                                }
-                                            },
-                                            JavaScript: {
-                                                label: 'JavaScript',
-                                                action: function() {
-                                                   Studio.createNewFile(contextMenuPath, 'JavaScript', ['js']);
-                                                }
-                                            },
-                                            JSON: {
-                                                label: 'JSON',
-                                                action: function() {
-                                                    Studio.createNewFile(contextMenuPath, 'JSON', ['json']);
-                                                }
-                                            }
-                                        }
-                                    },
-                                    Rename: {
-                                        label: 'Rename',
-                                        action: genericRenameAction
-                                    },
-                                    Delete: {
-                                        label: 'Delete',
-                                        action: function() {
-
-                                        }
-                                    },
-                                    Properties: {
-                                        label: 'Properties'
-                                    }
-                                }
-                            } else {
-                                // that's a file
-                            }
-                        }
-                    }
-                }).on('changed.jstree', function(e, data) {
-                    var i, j, r = [], p = [];
-                    for(i = 0, j = data.selected.length; i < j; i++) {
-                        r.push(data.instance.get_node(data.selected[i]).text);
-                        p.push(getFullPath(data.selected[i]));
-                    }
-
-                    // open file (file name is in r, full path is in p)
-
-                    for(var i = 0; i < p.length; i++) {
-                        Studio.openFile(projectDir + '/files/' + p[i]);
-                    }
-
-                }).on('before_open.jstree close_node.jstree', function(e, data) {
-                    $('#' + data.node.a_attr.id).find('i')
-                        .toggleClass('fa-folder-o fa-folder-open-o');
-                }));
-
-                $('#projects').modal('hide');
-
-                refreshPanelDurey = (new Date()).getTime() - refreshPanelCounter;
-                console.info('Panel updated in ' + refreshPanelDurey + ' ms');
-            },
-            error: function(err) {
-                bootbox.dialog({
-                    message: 'Can\'t connect to server',
-                    title: 'Server error',
-                    buttons: {
-                        OK: {
-                            label: 'OK',
-                            className: 'btn btn-default'
-                        }
+            var genericRenameAction = function() {
+                bootbox.prompt('New directory name ?', function(name) {
+                    if(!Shark.fs.rename(contextMenuPath, name)) {
+                        bootbox.alert('Can\'t rename directory !');
+                    } else {
+                        var link = selectedNode.find('a')[0];
+                        link.innerHTML = link.innerHTML.substr(0, link.innerHTML.length - $(link).text().length) + name;
                     }
                 });
+            };
+
+            data = recurse(data);
+
+            function r(o, c) {
+                if(!isDefined(c))
+                    return false;
+
+                for(var i in o) {
+                    if(o.hasOwnProperty(i)) {
+                        if(!isDefined(c[i]) && isDefined(o[i]))
+                            return false;
+                        else if((isString(o[i]) || isNumber(o[i])) && o[i] != c[i])
+                            return false;
+                        else if(isObject(o[i]))
+                            if(!r(o[i], c[i]))
+                                return false;
+                    }
+                }
+
+                for(var i in c) {
+                    if(c.hasOwnProperty(i)) {
+                        if(!isDefined(o[i]))
+                            return false;
+                    }
+                }
+
+                return true;
             }
-        });
+
+            if(r(data, lastPanelDataTree))
+                return;
+
+            lastPanelDataTree = data;
+
+            $('#panel').replaceWith($.create('div', {id: 'panel', style: $('#panel').attr('style')}).jstree({
+                core: {
+                    data: data,
+                    check_callback: true
+                },
+                plugins: plugins,
+                contextmenu: {
+                    items: function($node) {
+                        selectedNode = $('#' + $node.id);
+                        var path = projectDir + getFullPath($node.id);
+                        contextMenuPath = path;
+
+                        if(Shark.fs.existsDirectory(path)) {
+                            // that's a directory
+
+                            return {
+                                New: {
+                                    label: 'New',
+                                    submenu: {
+                                        HTML: {
+                                            label: 'HTML',
+                                            action: function() {
+                                               Studio.createNewFile(contextMenuPath, 'HTML', ['htm', 'html']);
+                                            }
+                                        },
+                                        CSS: {
+                                            label: 'CSS',
+                                            action: function() {
+                                                Studio.createNewFile(contextMenuPath, 'CSS', ['css']);
+                                            }
+                                        },
+                                        JavaScript: {
+                                            label: 'JavaScript',
+                                            action: function() {
+                                               Studio.createNewFile(contextMenuPath, 'JavaScript', ['js']);
+                                            }
+                                        },
+                                        JSON: {
+                                            label: 'JSON',
+                                            action: function() {
+                                                Studio.createNewFile(contextMenuPath, 'JSON', ['json']);
+                                            }
+                                        }
+                                    }
+                                },
+                                Rename: {
+                                    label: 'Rename',
+                                    action: genericRenameAction
+                                },
+                                Delete: {
+                                    label: 'Delete',
+                                    action: function() {
+
+                                    }
+                                },
+                                Properties: {
+                                    label: 'Properties'
+                                }
+                            }
+                        } else {
+                            // that's a file
+                        }
+                    }
+                }
+            }).on('changed.jstree', function(e, data) {
+                var i, j, r = [], p = [];
+                for(i = 0, j = data.selected.length; i < j; i++) {
+                    r.push(data.instance.get_node(data.selected[i]).text);
+                    p.push(getFullPath(data.selected[i]));
+                }
+
+                // open file (file name is in r, full path is in p)
+
+                for(var i = 0; i < p.length; i++) {
+                    Studio.openFile(projectDir + '/files/' + p[i]);
+                }
+
+            }).on('before_open.jstree close_node.jstree', function(e, data) {
+                $('#' + data.node.a_attr.id).find('i')
+                    .toggleClass('fa-folder-o fa-folder-open-o');
+            }));
+
+            $('#projects').modal('hide');
+
+            refreshPanelDurey = (new Date()).getTime() - refreshPanelCounter;
+            console.info('Panel updated in ' + refreshPanelDurey + ' ms');
+        }
 
         //console.info('Refreshing panel with directory : ' + projectDir.substr(0, projectDir.length - 1));
 
@@ -761,6 +744,397 @@ var Studio = function() {
 
     };
 
+    this.getPrivateProjectShortLink = function() {
+
+        var link = window.location.origin + window.location.pathname + '?surl=';
+
+        if(projectDir.substr(0, 9) === '/private/') {
+            link += 'pr';
+        } else {
+            link += 'pu';
+        }
+
+        var a = projectDir.substr(1);
+        a = a.substr(a.indexOf('/') + 1);
+        link += a.substr(0, a.length - 1);
+
+        return link;
+
+    };
+
+    this.projectSettings = function() {
+        // project settings
+    };
+
+    this.userSettings = function() {
+        function recurse(obj, headName) {
+            var i = [];
+            var p = {
+                text: obj['@attributes'][headName || 'legend']
+            };
+
+            if(objSize(obj) > 1) {
+                p.children = [];
+                p.icon = 'fa fa-folder-o';
+            } else {
+                p.icon = 'fa fa-file-o';
+            }
+
+            for(var i in obj) {
+                if(obj.hasOwnProperty(i)) {
+
+                    // donf[i] is an XML tag
+                    // we know that donf[i] is an object or an array because of XML has been treated by PHP
+
+                    if(i !== '@attributes') {
+                        if(isArray(obj[i])) {
+                            for(var j = 0; j < obj[i].length; j++) {
+                                p.children.push(recurse(obj[i][j], obj['@attributes']['head-name'] || headName));
+                            }
+                        } else {
+                            p.children.push(recurse(obj[i], obj['@attributes']['head-name'] || headName));
+                        }
+                    }
+
+                }
+            }
+
+            return p;
+        }
+
+        var plugins = [];
+
+        // doesn't work !!!!
+
+        if(config.studio.panelWholerow)
+            plugins.push('wholerow');
+
+        var settings = $.create(
+            'div',
+            {
+                id: 'userSettings',
+                type: 'settings'
+            }
+        ).jstree({
+            core: {
+                data: recurse(dconf)
+            },
+            plugins: plugins
+        }).on('changed.jstree', function(e, data) {
+            var node = data.instance.get_node(data.selected[0]);
+
+            if(node.children.length) {
+                // that's a folder !
+            } else {
+                var DOMNode = $('#' + node.id);
+                var DOMPath = [DOMNode];
+                var headName = 'legend', protect = [], nodeInConfig = dconf, textPath = [];
+
+                while(DOMNode.parent().parent().attr('role') == 'treeitem') {
+                    DOMNode = DOMNode.parent().parent();
+                    DOMPath.push(DOMNode);
+                }
+
+                DOMPath = DOMPath.reverse();
+
+                var nodeText, nodeInConfig = dconf, foundConf, headName = 'legend', path = [];
+                var types = '', alwaysShow = [];
+
+                for(var i = 1; i < DOMPath.length; i++) {
+                    nodeText = DOMPath[i].find('a:first').text();
+                    element = DOMPath[i];
+
+                    found = null;
+
+                    for(var j in nodeInConfig) {
+                        if(nodeInConfig.hasOwnProperty(j)) {
+
+                            if(j !== '@attributes') {
+                                conf = nodeInConfig[j];
+
+                                if(isArray(conf)) {
+                                    for(var k = 0; k < conf.length; k++) {
+                                        enfant = conf[k];
+                                        if(enfant['@attributes'][headName] === nodeText) {
+                                            found = enfant;
+                                            path.push(j, k);
+                                        }
+                                    }
+                                } else if(conf['@attributes'][headName] === nodeText) {
+                                    found = conf;
+                                    path.push(j);
+                                }
+                            }
+
+                        }
+                    }
+
+                    if(found) {
+                        nodeInConfig = found;
+                        confAttr = found['@attributes'];
+                        textPath.push(confAttr[headName]);
+
+                        if(confAttr['head-name'])
+                            headName = confAttr['head-name'];
+
+                        if(confAttr['read-only'])
+                            protect = protect.concat(confAttr['read-only'].split(','));
+
+                        if(confAttr['always-show'])
+                            alwaysShow = alwaysShow.concat(confAttr['always-show'].split(','));
+
+                        if(confAttr['type'])
+                            types = confAttr.type;
+                    }
+
+                }
+
+                userSettingsEditing = {
+                    obj: confAttr,
+                    path: path,
+                    legend: nodeText
+                };
+
+                var panelRows = [], prompt, typeName, t = {}, type;
+                types = types.split('|');
+
+                for(var i = 0; i < types.length; i++) {
+                    t[types[i].substr(0, types[i].indexOf(':'))] = types[i].substr(types[i].indexOf(':') + 1);
+                }
+
+                confAttr = cloneObject(confAttr);
+
+                for(var i = 0; i < alwaysShow.length; i++) {
+                    if(!isDefined(confAttr[alwaysShow[i]]))
+                        confAttr[alwaysShow[i]] = '';
+                }
+
+                for(var i in confAttr) {
+                    if(confAttr.hasOwnProperty(i) && i !== 'type' && protect.indexOf(i) === -1) {
+                    
+                        type = t[i] || 'text';
+                        typeName = type;
+
+                        if(typeName.indexOf(':') !== -1)
+                            typeName = typeName.substr(0, typeName.indexOf(':'));
+
+                        type = type.substr(typeName.length + 1);
+
+                        switch(typeName) {
+                            case 'select':
+                                var opt = [];
+
+                                if(type.substr(0, 1) === '{' && type.substr(-1) === '}') {
+                                    type = window[type.substr(1, type.length - 2)];
+
+                                    if(!type.join)
+                                        type = '';
+                                    else
+                                        type = type.join(',');
+
+                                }
+
+                                type.split(',').forEach(function(val) {
+                                    var o = $.create('option').text(val);
+
+                                    if(val === confAttr[i])
+                                        o.attr('selected', 'selected');
+
+                                    opt.push(o);
+                                });
+
+                                prompt = $.create('select', {
+                                    class: 'form-control',
+                                    content: opt,
+                                    for: i
+                                });
+                                break;
+
+                            case 'boolean':
+                                prompt = $.create('select', {
+                                    content: [
+                                        $.create('option').text('true'),
+                                        $.create('option').text('false')
+                                    ],
+                                    class: 'form-control',
+                                    for: i
+                                });
+                                prompt.find('option:eq(' + confAttr[i] === 'true' + ')').attr('selected', 'selected');
+                                break;
+
+                            case 'date':
+                            case 'email':
+                            case 'text':
+                            case 'number':
+                            default:
+                                prompt = $.create('input', {
+                                    class: 'form-control',
+                                    for: i,
+                                    placeholder: i,
+                                    type: typeName
+                                }).val(confAttr[i]);
+                                break;
+                        }
+
+                        panelRows.push($.create('div', {
+                            class: 'form-group',
+                            content: prompt
+                        }));
+                    }
+                }
+
+                $(this).parent().parent().parent().find('div[type="panel"]').html('').append([
+                    $.create('h1',{content:$.create('small',{content:$.create('small').text(textPath.join(' / '))})})
+                    ].concat(panelRows).concat([
+                        $.create('button', {
+                        class: 'btn btn-success',
+                        content: 'Save changes'
+                    }).click(function() {
+
+                        var hadError = false;
+
+                        $('button:eq(3)').parent().find('[for]').each(function(el, node) {
+
+                            var val;
+
+                            switch(node.nodeName.toLocaleLowerCase()) {
+
+                                case 'select':
+                                    val = $(node).find(':selected').text();
+                                    break;
+
+                                case 'text':
+                                case 'number':
+                                case 'date':
+                                case 'email':
+                                default:
+                                    val = $(node).val();
+                                    break;
+
+                            }
+
+                            var path = userSettingsEditing.path.concat(['@attributes', $(node).attr('for')]);
+
+                            if(hadError)
+                                return;
+
+                            var serve = Shark.fs.serve('changePreferences', path.join('/'), val);
+
+                            if(serve !== 'true') {
+                                hadError = true;
+                                bootbox.dialog({
+                                    title: 'Server error',
+                                    message: '<h2>Can\'t save changes</h2>Server said :<br /><br />' + $('<div></div>').text(serve).html(),
+                                    buttons: {
+                                        Close: {
+                                            label: 'Close',
+                                            className: 'btn btn-danger'
+                                        }
+                                    }
+                                })
+                            }
+
+                        });
+
+                        if(!hadError) {
+                            bootbox.dialog({
+                                title: 'Saved preferences',
+                                message: '<h2>Successfully saved preferences</h2>',
+                                buttons: {
+                                    Close: {
+                                        label: 'Close',
+                                        className: 'btn btn-success'
+                                    }
+                                }
+                            });
+                        }
+
+                    })])
+                );
+
+            }
+
+        }).on('before_open.jstree close_node.jstree', function(e, data) {
+            $('#' + data.node.a_attr.id).find('i')
+                .toggleClass('fa-folder-o fa-folder-open-o');
+        });
+
+        /*var content = $.create('table', {
+            content: [
+                $.create('tr', {
+                    content: [
+                        $.create('td', {
+                            content: settings
+                        }).css('border-right', '1px solid gray').css('padding-right', 5),
+                        $.create('td', {
+                            content: $.create('div', {
+                                content: 
+                                    $.create('div', {
+                                        type: 'panel',
+                                        content: 'Nothing to display'
+                                    }).css('width', '100%').css('height', '100%')
+                            })
+                        }).css('padding-left', 5)
+                    ]
+                })
+            ]
+        }).css('width', '100%');*/
+
+        var content = [
+            settings.css({
+                borderRight: '1px solid gray',
+                paddingright: 5,
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                bottom: 0,
+                width: '50%'
+            }),
+            $.create('div', {
+                type: 'panel',
+                content: 'Nothing to display'
+            }).css({
+                paddingLeft: 5,
+                paddingRight: 5,
+                display: 'inline-block',
+                position: 'absolute',
+                top: 0,
+                left: '50%',
+                right: 0,
+                bottom: 0
+            })
+        ];
+
+        $('#settings').html(content).show();
+
+    };
+
+    this.logout = function() {
+
+        if(Shark.fs.serve('logout') !== 'true') {
+            return bootbox.dialog({
+                title: 'Disconnect error',
+                message: '<h2>Can\'t disconnect from account<h2>Server said :<br /><br />' + lastError,
+                buttons: {
+                    Retry: {
+                        label: 'Retry',
+                        className: 'btn-success',
+                        callback: function() {
+                            Studio.logout();
+                        }
+                    },
+                    Cancel: {
+                        label: 'Cancel',
+                        className: 'btn-danger'
+                    }
+                }
+            })
+        } else {
+            window.location.href = 'login.php';
+        }
+
+    };
+
 };
 
 Studio = new Studio();
@@ -823,6 +1197,39 @@ var menu = {
         }],
         Close: ['fa fa-times', function() {
             Studio.closeActiveFile();
+        }]
+    }],
+
+    Project: ['fa fa-folder-o', {
+        Settings: ['fa fa-wrench', function() {
+            Studio.projectSettings();
+        }],
+
+        A: 'sep',
+
+        'Private short link': ['fa fa-share', function() {
+            bootbox.dialog({
+                title: 'Private short link',
+                message: '<h4>Private project short link</h4>This is a short link to access easily to this project.<br />Please note that you must be logged in with your account to access this project !<br /><br /><input type="text" class="form-control" value="' + Studio.getPrivateProjectShortLink() + '" />',
+                buttons: {
+                    Close: {
+                        label: 'Close',
+                        className: 'btn-primary'
+                    }
+                }
+            });
+        }]
+    }],
+
+    Account: ['fa fa-user', {
+        Preferences: ['fa fa-wrench', function() {
+            Studio.userSettings();
+        }],
+        
+        A: 'sep',
+
+        Logout: ['fa fa-sign-out', function() {
+            Studio.logout();
         }]
     }],
 
@@ -1038,12 +1445,19 @@ for(var i in menu) {
         items = [];
 
         for(var j in menu[i][1]) {
-            items.push($.create('li', {
-                content: $.create('a', {
-                    href: '#',
-                    content: [$.create('i', {class: menu[i][1][j][0]}), ' ' + j]
-                }).click(menu[i][1][j][1])
-            }))
+            if(menu[i][1][j] === 'sep') {
+                items.push($.create('li', {
+                    role: 'separator',
+                    class: 'divider'
+                }))
+            } else {
+                items.push($.create('li', {
+                    content: $.create('a', {
+                        href: '#',
+                        content: [$.create('i', {class: menu[i][1][j][0]}), ' ' + j]
+                    }).click(menu[i][1][j][1])
+                }))
+            }
         }
 
         $('#menuitems').append($.create('li', {
@@ -1071,18 +1485,20 @@ $('#terminal-tools button[action="clear"]').click(function() {
 });
 
 var panelRefresh;
+var panelRefreshCallback = function() {
+    if(projectDir && Studio && Studio.refreshPanel)
+        Studio.refreshPanel(projectDir.substr(0, projectDir.length - 1));
+}
 
 $(window).on('load', function() {
     
     if(loadProject) {
         Studio.refreshPanel(request.project);
         Shark.fs.chdir(projectDir + 'files');
-    } else {
-        panelRefresh = setInterval(function() {
-            if(projectDir && Studio && Studio.refreshPanel)
-                Studio.refreshPanel(projectDir.substr(0, projectDir.length - 1));
-        }, 1000);
     }
+    
+    window.panelRefresh = setInterval(window.panelRefreshCallback, 1000);
+    window.panelRefreshCallback();
 
 });
 

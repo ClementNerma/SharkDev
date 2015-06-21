@@ -6,7 +6,7 @@
     <link rel="stylesheet" type="text/css" href="css/bootstrap/bootstrap.min.css" />
     <link rel="stylesheet" type="text/css" href="css/flat-ui/flat-ui.min.css" />
     <link rel="stylesheet" type="text/css" href='http://fonts.googleapis.com/css?family=Roboto|Open+Sans' />
-    <link rel="stylesheet" type="text/css" href="css/login.css" />
+    <link rel="stylesheet" type="text/css" href="css/login-register.css" />
 </head>
 <body>
     <h4 id="info">An account is required to access to the Shark Dev Studio</h4>

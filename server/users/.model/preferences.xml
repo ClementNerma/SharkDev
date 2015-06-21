@@ -1,68 +1,67 @@
-<?xml version="1.0" encoding="utf-8" ?>
-<preferences>
+<?xml version="1.0" encoding="utf-8"?>
+<preferences legend="User preferences and settings">
 
-	<messenger>
-		<events>
-			<event on="receive" do="user-popup" />
+	<messenger legend="Messenger">
+		<events legend="Events" head-name="event" read-only="on,event">
+			<event on="receive" value="user-popup" event="When a message is received" type="value:select:user-popup,nothing,open,dialog-box"/>
 		</events>
 	</messenger>
 
-	<studio>
-		<param name="panelWholerow" value="true" />
-		<param name="" value="" />
+	<studio legend="Studio" read-only="name,legend">
+		<param name="panelWholerow" value="true" legend="Enable jsTree wholerow plugin" type="value:boolean"/>
 	</studio>
 
-	<editor>
-		<param name="theme"        value="monokai" />
-		<param name="init_mode"    value="javascript" />
-		<param name="autocomplete" value="true" />
-		<param name="emmet"		   value="true" />
-		<param name="font-size"    value="13" />
-		<param name="max-file-open-size"    value="102400" />
-		<param name="cancel-file-open-size" value="1048576" />
-		<native>
-			<param name="highlightActiveLine" value="true"  />
-			<param name="animatedScroll"      value="true"  />
-			<param name="showInvisibles"      value="false" />
-			<param name="showPrintMargin"     value="false" />
-			<param name="showLineNumbers"     value="true"  />
+	<editor legend="Editor" read-only="name,legend">
+		<param name="theme" value="monokai" legend="Editor main theme" type="value:select:{ace_themes}"/>
+		<param name="init_mode" value="javascript" legend="Initial mode" type="value:select:{ace_modes}"/>
+		<param name="autocomplete" value="true" legend="Enable code auto-completion" type="value:boolean"/>
+		<param name="emmet" value="true" legend="Enable Emmet" type="value:boolean"/>
+		<param name="font-size" value="13" legend="Font size" type="value:number"/>
+		<param name="max-file-open-size" value="102400" legend="Display a warning when you try to open a file whose size exceed" type="value:number"/>
+		<param name="cancel-file-open-size" value="1048576" legend="Forbid opening of files whose size exceed" type="value:number"/>
+		<native legend="Native Ace Editor parameters" head-name="name">
+			<param name="highlightActiveLine" value="true" type="value:boolean"/>
+			<param name="animatedScroll" value="true" type="value:boolean"/>
+			<param name="showInvisibles" value="false" type="value:boolean"/>
+			<param name="showPrintMargin" value="false" type="value:boolean"/>
+			<param name="showLineNumbers" value="true" type="value:boolean"/>
 		</native>
 	</editor>
 
-	<files>
-		<type extension="@default" name="default" mode="plain_text" icon="fa:file-o" />
-		<type extension="html" name="HTML" mode="html" icon="fa:html5" />
-		<type extension="js" name="JavaScript" mode="javascript" />
-		<type extension="css" name="CSS" mode="css" icon="fa:css3" />
-		<type extension="json" name="JSON" mode="json" />
-		<type extension="xml" name="XML" mode="xml" icon="fa:cogs" />
-		<type extension="c" name="C" mode="c_cpp" />
-		<type extension="cpp" name="C++" mode="c_cpp" />
-		<type extension="cs" name="C#" mode="csharp" />
-		<type extension="gitignore" name="Git Ignore" mode="gitignore" />
-		<type extension="coffee" name="CoffeeScript" mode="coffee" icon="fa:coffee" />
-		<type extension="ini" name="INI" mode="ini" />
-		<type extension="jade" name="Jade" mode="jade" />
-		<type extension="java" name="Java" mode="java" />
-		<type extension="less" name="Less" mode="less" />
-		<type extension="lua" name="Lua" mode="lua" />
-		<type extension="make" name="MakeFile" mode="makefile" />
-		<type extension="md" name="MarkDown" mode="markdown" />
-		<type extension="sql" name="SQL" mode="sql" icon="fa:database" />
-		<type extension="php,php3,php5" name="PHP" mode="php" icon="fa:server" />
-		<type extension="txt" name="Text" mode="plain_text" icon="fa:file-text-o" />
-		<type extension="ts" name="TypeScript" mode="typescript" />
-		<type extension="vbs" name="Visual Basic Script" mode="vbs" />
-		<type extension="bat" name="Batch Script" mode="batchfile" />
-		<type extension="sh" name="Unix Shell Script" mode="sh" icon="fa:linux" />
-		<type extension="sass" name="SASS" mode="sass" icon="fa:css3" />
-		<type extension="scss" name="SCSS" mode="scss" icon="fa:css3" />
-		<type extension="bas" name="Basic script (DOS)" />
-		<type extension="py" name="Python" mode="python" />
+	<files legend="Files type" head-name="name" type="mode:select:{ace_modes}" always-show="extension,name,mode,icon">
+		<type extension="@default" name="default" mode="plain_text" icon="fa:file-o"/>
+		<type extension="html" name="HTML" mode="html" icon="fa:html5"/>
+		<type extension="js" name="JavaScript" mode="javascript"/>
+		<type extension="css" name="CSS" mode="css" icon="fa:css3"/>
+		<type extension="json" name="JSON" mode="json"/>
+		<type extension="xml" name="XML" mode="xml" icon="fa:cogs"/>
+		<type extension="c" name="C" mode="c_cpp"/>
+		<type extension="cpp" name="C++" mode="c_cpp"/>
+		<type extension="cs" name="C#" mode="csharp"/>
+		<type extension="gitignore" name="Git Ignore" mode="gitignore"/>
+		<type extension="coffee" name="CoffeeScript" mode="coffee" icon="fa:coffee"/>
+		<type extension="ini" name="INI" mode="ini" icon="fa:cogs"/>
+		<type extension="jade" name="Jade" mode="jade"/>
+		<type extension="java" name="Java" mode="java"/>
+		<type extension="less" name="Less" mode="less"/>
+		<type extension="lua" name="Lua" mode="lua"/>
+		<type extension="make" name="MakeFile" mode="makefile"/>
+		<type extension="md" name="MarkDown" mode="markdown"/>
+		<type extension="sql" name="SQL" mode="sql" icon="fa:database"/>
+		<type extension="php,php3,php5" name="PHP" mode="php" icon="fa:server"/>
+		<type extension="txt" name="Text" mode="plain_text" icon="fa:file-text-o"/>
+		<type extension="ts" name="TypeScript" mode="typescript"/>
+		<type extension="vbs" name="Visual Basic Script" mode="vbs"/>
+		<type extension="bat" name="Batch Script" mode="batchfile"/>
+		<type extension="sh" name="Unix Shell Script" mode="sh" icon="fa:linux"/>
+		<type extension="sass" name="SASS" mode="sass" icon="fa:css3"/>
+		<type extension="scss" name="SCSS" mode="scss" icon="fa:css3"/>
+		<type extension="bas" name="Basic script (DOS)"/>
+		<type extension="py" name="Python" mode="python"/>
 
-		<type extension="ssa" name="SharkDev Script Agent" openable="SSA" />
+		<type extension="ssa" name="SharkDev Script Agent" openable="SSA"/>
 
-		<type extension="scm" name="SharkDev Commit" mode="json" icon="fa:history" />
-		<type extension="zip,tar,gz,bz2,rar" name="File archive" icon="fa:file-archive-o" />
+		<type extension="scm" name="SharkDev Commit" mode="json" icon="fa:history"/>
+		<type extension="zip,tar,gz,bz2,rar" name="File archive" icon="fa:file-archive-o"/>
 	</files>
 </preferences>

@@ -1,10 +1,10 @@
 /* line 7, ../sass/studio.scss */
-body, #menu, #panel, #tabs {
+body, #menu, #panel, #tabs, #settings {
   background-color: beige;
 }
 
 /* line 11, ../sass/studio.scss */
-#menu, #panel, #tabs, #editor, #terminal-container {
+#menu, #panel, #tabs, #editor, #terminal-container, #settings {
   position: absolute;
   z-index: 0;
 }
@@ -76,13 +76,22 @@ noscript {
   bottom: 0;
 }
 
+/* line 76, ../sass/studio.scss */
+#settings {
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 1002;
+}
+
 /* line 74, ../sass/studio.scss */
-/* line 77, ../sass/studio.scss */
+/* line 85, ../sass/studio.scss */
 .bootbox table#commitHistory tr:hover {
   cursor: pointer;
 }
 
-/* line 81, ../sass/studio.scss */
+/* line 89, ../sass/studio.scss */
 #commitViewer {
   width: 100%;
   height: 480px;

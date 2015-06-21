@@ -1,4 +1,6 @@
 <?php
+
+require_once(__DIR__ . '/server/config.php');
 require_once(__DIR__ . '/server/session.php');
 
 if(!$_SESSION['shark-user']['username']) {
@@ -8,7 +10,7 @@ if(!$_SESSION['shark-user']['username']) {
 <html>
 <head>
     <meta charset="utf-8" />
-    <title>Shark Dev</title>
+    <title><?php echo $_SESSION['shark-user']['username']; ?> - Shark Dev</title>
     <link rel="stylesheet" type="text/css" href='http://fonts.googleapis.com/css?family=Roboto|Open+Sans' />
     <link rel="stylesheet" type="text/css" href="css/bootstrap/bootstrap.min.css" />
     <link rel="stylesheet" type="text/css" href="css/jstree/default/style.min.css" />
@@ -54,7 +56,7 @@ if(!$_SESSION['shark-user']['username']) {
                     <span class="icon-bar"></span>
                     <span class="icon-bar"></span>
                 </button>
-                <a class="navbar-brand" href="#">SharkDev Studio</a>
+                <a class="navbar-brand" href="#"><?php echo $_SESSION['shark-user']['username']; ?></a>
             </div>
             <div id="navbar" class="navbar-collapse collapse">
                 <ul class="nav navbar-nav" id="menuitems">
@@ -84,6 +86,7 @@ if(!$_SESSION['shark-user']['username']) {
     </nav>
 
     <div id="panel"></div>
+    <div id="settings"></div>
     <ul id="tabs" class="nav nav-tabs"></ul>
     <div id="editor"></div>
     <div id="terminal-container">
@@ -109,11 +112,18 @@ if(!$_SESSION['shark-user']['username']) {
 
         var request = {
             <?php
-                if(isset($_GET['project'])) { echo 'project: "' . $_GET['project'] . '"'; }
-                if(isset($_GET['project']) && isset($_GET['commit'])) { echo ','; }
-                if(isset($_GET['commit'])) { echo 'commit: "' . $_GET['commit'] . '"'; }
+                if(isset($_GET['surl']) && strlen($_GET['surl']) > 2) {
+                    echo 'project: "' . (substr($_GET['surl'], 0, 2) == 'pr' ? 'private/' : 'public/') . substr($_GET['surl'], 2) . '"';
+                } else {
+                    if(isset($_GET['project'])) { echo 'project: "' . $_GET['project'] . '"'; }
+                    if(isset($_GET['project']) && isset($_GET['commit'])) { echo ','; }
+                    if(isset($_GET['commit'])) { echo 'commit: "' . $_GET['commit'] . '"'; }
+                }
             ?>
         };
+
+        var sharkDevRobot = <?php echo '"' . $shark['sys']['robot'] . '"'; ?>
+
     </script>
 
     <script type="text/javascript" src="js/shark.js"></script>

@@ -25,6 +25,18 @@ $shark = array(
 
     'sys' => array(
         'robot' => 'SharkDev'
+    ),
+
+    'users' => array(
+        'allow-register' => true
+    ),
+
+    'security' => array(
+        'login-attempts' => array(
+            'enabled' => true,
+            'allow' => 10,
+            'delay' => 30
+        )
     )
 );
 
