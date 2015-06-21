@@ -299,7 +299,7 @@ abstract class User {
                     $f[$fname] = 1;
                 } else {
                     // that's a directory
-                    $dirName = substr($name, 0, strpos($name, '/'));
+                    $dirName = substr($fname, 0, strpos($fname, '/'));
 
                     if($recursively) {
                         $d[$dirName] = self::readDirectory((strlen($dir) ? $dir . '/' : '') . $dirName, true, true);
@@ -525,6 +525,26 @@ abstract class User {
 
         file_put_contents('preferences.xml', $xml->asXML());
         return 'true';
+
+    }
+
+    public static function getProjectConfig($project) {
+
+        if(!is_dir($project) || !is_file($project . '/config.xml')) {
+            header("HTTP/1.0 404 Not Found");
+        }
+
+        return json_encode(simplexml_load_file($project . '/config.xml'));
+
+    }
+
+    public static function getProjectInformations($project) {
+
+        if(!is_dir($project) || !is_file($project . '/informations.xml')) {
+            header("HTTP/1.0 404 Not Found");
+        }
+
+        return json_encode(simplexml_load_file($project . '/informations.xml'));
 
     }
 

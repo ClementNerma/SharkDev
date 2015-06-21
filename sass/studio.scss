@@ -3,12 +3,13 @@ $panelWidth: 15%;
 $terminalHeight: 40%;
 $menuHeight: 50px;
 $tabsHeight: 40px;
+$statusHeight: 20px;
 
-body, #menu, #panel, #tabs, #settings {
+body, #menu, #panel, #tabs, #settings, #status {
     background-color: beige;
 }
 
-#menu, #panel, #tabs, #editor, #terminal-container, #settings {
+#menu, #panel, #tabs, #editor, #terminal-container, #settings, #status {
     position: absolute;
     z-index: 0;
 }
@@ -48,7 +49,6 @@ noscript {
     right: 0;
 }
 
-/* line 52, ../sass/studio.scss */
 #editor {
     top: ($menuHeight + $tabsHeight);
     left: $panelWidth;
@@ -56,15 +56,13 @@ noscript {
     bottom: 0;
 }
 
-/* line 59, ../sass/studio.scss */
 #terminal-container {
     left: $panelWidth;
     right: 0;
-    bottom: 0;
+    bottom: $statusHeight;
     height: $terminalHeight;
 }
 
-/* line 66, ../sass/studio.scss */
 #terminal {
     position: absolute;
     top: 28px;
@@ -81,7 +79,14 @@ noscript {
     z-index: 1002;
 }
 
-/* line 74, ../sass/studio.scss */
+#status {
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: $statusHeight;
+    border-top: 1px solid gray;
+}
+
 .bootbox table#commitHistory tr:hover {
     cursor: pointer;
 }

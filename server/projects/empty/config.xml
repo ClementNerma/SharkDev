@@ -7,7 +7,7 @@
 	<param name="files-max-size" value="" />
 	<param name="project-max-size" value="" />
 
-	<param name="link" value="@sharkdev@:HelloWorld" />
+	<param name="link" value="" />
 	<param name="link-update" value="ask-user" />
 
 	<project>
@@ -20,6 +20,5 @@
 	</project>
 
 	<filewatchers>
-		<watcher type="SASS" for="*.sass" compiler="SASS" native-compiler="true" />
 	</filewatchers>
 </config>

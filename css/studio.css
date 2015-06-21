@@ -1,15 +1,15 @@
-/* line 7, ../sass/studio.scss */
-body, #menu, #panel, #tabs, #settings {
+/* line 8, ../sass/studio.scss */
+body, #menu, #panel, #tabs, #settings, #status {
   background-color: beige;
 }
 
-/* line 11, ../sass/studio.scss */
-#menu, #panel, #tabs, #editor, #terminal-container, #settings {
+/* line 12, ../sass/studio.scss */
+#menu, #panel, #tabs, #editor, #terminal-container, #settings, #status {
   position: absolute;
   z-index: 0;
 }
 
-/* line 16, ../sass/studio.scss */
+/* line 17, ../sass/studio.scss */
 noscript {
   position: absolute;
   top: 0;
@@ -22,7 +22,7 @@ noscript {
   background-color: white;
 }
 
-/* line 28, ../sass/studio.scss */
+/* line 29, ../sass/studio.scss */
 #menu {
   top: 0;
   left: 0;
@@ -31,7 +31,7 @@ noscript {
   z-index: 999;
 }
 
-/* line 36, ../sass/studio.scss */
+/* line 37, ../sass/studio.scss */
 #panel {
   top: 50px;
   left: 0;
@@ -40,7 +40,7 @@ noscript {
   border-right: 1px solid #bbbbbb;
 }
 
-/* line 44, ../sass/studio.scss */
+/* line 45, ../sass/studio.scss */
 #tabs {
   top: 50px;
   left: 15%;
@@ -48,7 +48,6 @@ noscript {
   right: 0;
 }
 
-/* line 52, ../sass/studio.scss */
 /* line 52, ../sass/studio.scss */
 #editor {
   top: 90px;
@@ -58,16 +57,14 @@ noscript {
 }
 
 /* line 59, ../sass/studio.scss */
-/* line 60, ../sass/studio.scss */
 #terminal-container {
   left: 15%;
   right: 0;
-  bottom: 0;
+  bottom: 20px;
   height: 40%;
 }
 
 /* line 66, ../sass/studio.scss */
-/* line 68, ../sass/studio.scss */
 #terminal {
   position: absolute;
   top: 28px;
@@ -76,7 +73,7 @@ noscript {
   bottom: 0;
 }
 
-/* line 76, ../sass/studio.scss */
+/* line 74, ../sass/studio.scss */
 #settings {
   top: 0;
   left: 0;
@@ -85,13 +82,21 @@ noscript {
   z-index: 1002;
 }
 
-/* line 74, ../sass/studio.scss */
-/* line 85, ../sass/studio.scss */
+/* line 82, ../sass/studio.scss */
+#status {
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 20px;
+  border-top: 1px solid gray;
+}
+
+/* line 90, ../sass/studio.scss */
 .bootbox table#commitHistory tr:hover {
   cursor: pointer;
 }
 
-/* line 89, ../sass/studio.scss */
+/* line 94, ../sass/studio.scss */
 #commitViewer {
   width: 100%;
   height: 480px;

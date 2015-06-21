@@ -1,4 +1,6 @@
 
+$('#status').text('Initializing SharkDev Studio environment...');
+
 var SERVER_URL = 'http://localhost/SharkDev/server';
 var serverPages = {
     API: 'HTTP_API.php',
@@ -18,13 +20,22 @@ function server(page, params) {
 
 /* Initialize studio */
 
+// definen all global variables
 var projectDir, contextMenuPath, selectedNode, createNewFilePath, commitMessage, lastPanelDataTree;
 var refreshPanelDurey, openingFile, selectedCommitID, _sayedCommitMode, _sayedSavedFile;
-var userSettingsEditing;
+var userSettingsEditing, projectLoaded = false, compileCode, IO;
+var projectConfig = {
+    project: {},
+    fileWatchers: {},
+    params: {}
+};
+var projectInfos = {};
 
+// define ace themes and modes list
 var ace_themes = ['ambiance', 'chaos', 'chrome', 'clouds', 'clouds_midnight', 'cobalt', 'crimson_editor', 'dawn', 'dreamweaver', 'eclipse', 'github', 'idle_fingers', 'iplastic', 'katzenmilch', 'kr_theme', 'kuroir', 'merbivore', 'merbivore_soft', 'mono_industrial', 'monokai', 'pastel_on_dark', 'solarized_dark', 'solarized_light', 'sqlserver', 'terminal', 'textmate', 'tomorrow', 'tomorrow_night_blue', 'tomorrow_night_bright', 'tomorrow_night_eighties', 'tomorrow_night', 'twilight', 'vibrant_ink', 'xcode'];
 var ace_modes = ['abap', 'abc', 'actionscript', 'ada', 'apache_conf', 'applescript', 'asciidoc', 'assembly_x86', 'autohotkey', 'batchfile', 'c9search', 'c_cpp', 'cirru', 'clojure', 'cobol', 'coffee', 'coldfusion', 'csharp', 'css', 'curly', 'dart', 'diff', 'django', 'd', 'dockerfile', 'dot', 'eiffel', 'ejs', 'elixir', 'elm', 'erlang', 'forth', 'ftl', 'gcode', 'gherkin', 'gitignore', 'glsl', 'golang', 'groovy', 'haml', 'handlebars', 'haskell', 'haxe', 'html', 'html_ruby', 'ini', 'io', 'jack', 'jade', 'java', 'javascript', 'jsoniq', 'json', 'jsp', 'jsx', 'julia', 'latex', 'lean', 'less', 'liquid', 'lisp', 'live_script', 'livescript', 'logiql', 'lsl', 'lua', 'luapage', 'lucene', 'makefile', 'markdown', 'mask', 'matlab', 'mel', 'mips_assembler', 'mipsassembler', 'mushcode', 'mysql', 'nix', 'objectivec', 'ocaml', 'pascal', 'perl', 'pgsql', 'php', 'plain_text', 'powershell', 'praat', 'prolog', 'properties', 'protobuf', 'python', 'rdoc', 'rhtml', 'r', 'ruby', 'rust', 'sass', 'scad', 'scala', 'scheme', 'scss', 'sh', 'sjs', 'smarty', 'snippets', 'soy_template', 'space', 'sql', 'sqlserver', 'stylus', 'svg', 'tcl', 'tex', 'textile', 'text', 'toml', 'twig', 'typescript', 'vala', 'vbscript', 'velocity', 'verilog', 'vhdl', 'xml', 'xquery', 'yaml'];
 
+// display, hide and perform many actions on many DOM elements
 $('#settings').hide();
 $('noscript').remove();
 $('#projects').modal({keyboard:false}).modal('hide');
@@ -41,7 +52,11 @@ $('#terminal').terminal(function(command, term) {
 });
 $('#terminal-container').slideToggle(0);
 $('#commitViewer').hide();
+$('.navbar-brand').click(function() {
+    $('#menuitems .fa-user').parent().trigger('click');
+});
 
+// get user's preferences
 var dconf = Shark.fs.serve('getPreferences');
 
 try {
@@ -67,7 +82,8 @@ var c, config = {
     editor: {
         native: {}
     },
-    studio: {}
+    studio: {},
+    contextmenu: {}
 };
 
 for(var i in dconf.files.type) {
@@ -88,7 +104,7 @@ for(var i in dconf.files.type) {
 }
 
 function config_set(configObject, params) {
-    if(params.length > 1) {
+    if(isArray(params)) {
         for(var i in params) {
             if(params.hasOwnProperty(i)) {
                 c = params[i]['@attributes'];
@@ -107,6 +123,7 @@ function config_set(configObject, params) {
 config_set(config.editor, dconf.editor.param);
 config_set(config.editor.native, dconf.editor.native.param);
 config_set(config.studio, dconf.studio.param);
+config_set(config.contextmenu, dconf.contextmenu.param);
 
 var editor = ace.edit('editor');
 editor.$blockScrolling = Infinity;
@@ -200,6 +217,7 @@ if(!request.project || !loadProject) {
                 var type = $(this).parent().attr('data'); // equals to 'public' or 'private'
                 var name = $(this).html(); // project name
 
+                $('#status').text('Loading project : ' + type + '/' + name);
                 Studio.refreshPanel(type + '/' + name);
                 Shark.fs.chdir(projectDir + 'files');
 
@@ -222,6 +240,7 @@ var StudioCreateNewFileExtensions;
 
 var Studio = function() {
 
+    // refresh the file list in the left panel
     this.refreshPanel = function(dir) {
 
         refreshPanelDurey = 0;
@@ -229,8 +248,110 @@ var Studio = function() {
 
         projectDir = Shark.fs.normalizePath('/' + dir) + '/';
 
+        if(!projectLoaded) {
+            // if the project is loading and if this function is called for the first time
+            var err = false;
+
+            var proj_config = Shark.fs.serveI('getProjectConfig', projectDir);
+            var proj_infos  = Shark.fs.serveI('getProjectInformations', projectDir);
+
+            try {
+                proj_config = JSON.parse(proj_config);
+                proj_infos = JSON.parse(proj_infos);
+            }
+
+            catch(e) {
+                err = true;
+                bootbox.dialog({
+                    title: 'Server error',
+                    message: '<h2>Cannot load project configuration</h2>File watchers and other configurations will not work during this session.<br />Please refresh the page to try again.',
+                    buttons: {
+                        Retry: {
+                            label: 'Retry',
+                            className: 'btn-success',
+                            callback: function() {
+                                window.location.reload();
+                            }
+                        },
+                        Cancel: {
+                            label: 'Cancel',
+                            className: 'btn-danger'
+                        }
+                    }
+                });
+            }
+
+            // if data are valid and were converted to JSON object by JSON.parse()
+            if(!err) {
+                // we convert the configuration of the project from JSON treated by PHP to another JSON presentation
+                config_set(projectConfig.params, proj_config.param);
+                config_set(projectConfig.project, proj_config.project.param);
+
+                if(isArray(proj_config.filewatchers.watcher)) {
+                    for(var i = 0; i < proj_config.filewatchers.watcher; i++) {
+                        projectConfig.fileWatchers[proj_config.filewatchers.watcher[i]['@attributes'].type] = proj_config.filewatchers.watcher[i]['@attributes'];
+                    }
+                } else {
+                    projectConfig.fileWatchers[proj_config.filewatchers.watcher['@attributes'].type] = proj_config.filewatchers.watcher['@attributes'];
+                }
+
+                config_set(projectInfos, proj_infos.attribute);
+
+                projectLoaded = true;
+
+                for(var i in projectConfig.fileWatchers) {
+                    if(projectConfig.fileWatchers.hasOwnProperty(i)) {
+                        var watcher = projectConfig.fileWatchers[i];
+                        watcher.vars = {};
+                        watcher['input-type'] = watcher['input-type'] || 'path';
+                        watcher.output = watcher.output || '${input}.out';
+
+                        try { watcher.parameters = JSON.parse(watcher.parameters); }
+                        catch(e) { watcher.parameters = {}; }
+
+                        $.ajax({
+                            url: 'server/get-compiler.php?name=' + watcher.compiler,
+                            async: false,
+                            success: function(ans) {
+                                try {
+                                    var compilerPackage = JSON.parse(ans);
+                                }
+
+                                catch(e) {
+                                    this.error({statusCode: 200});
+                                }
+
+                                watcher.package = compilerPackage;
+
+                            },
+                            error: function(xhr) {
+                                bootbox.dialog({
+                                    title: 'Server error',
+                                    message: '<h2>Can\'t get file watcher : ' + watcher.type + '</h2>Maybe it has been removed from the server.<br /><br /><details><summary>Details</summary>Status code : ' + xhr.status + '</details>',
+                                    buttons: {
+                                        Retry: {
+                                            label: 'Retry',
+                                            className: 'btn-success',
+                                            callback: function() {
+                                                window.location.reload();
+                                            }
+                                        },
+                                        Ignore: {
+                                            label: 'Ignore',
+                                            className: 'btn-danger'
+                                        }
+                                    }
+                                });
+                            }
+                        })
+                    }
+                }
+            }
+        }
+
         var data = Shark.fs.readDirectory(projectDir + 'files', true);
 
+        // if can't get the project files list
         if(!files) {
             bootbox.dialog({
                 title: 'Server error',
@@ -243,6 +364,7 @@ var Studio = function() {
                 }
             });
         } else {
+            // function to create a jsTree object from a server readDirectory() response
             function recurse(obj) {
                 var r = {};
 
@@ -289,10 +411,14 @@ var Studio = function() {
                 return final;
             }
 
+            // we define the plugins list
             var plugins = ['contextmenu'];
+
+            // if the user want to use the 'wholerow' plugin for the panel
             if(config.studio.panelWholerow)
                 plugins.push('wholerow');
 
+            // define the function which permit to rename files and directories
             var genericRenameAction = function() {
                 bootbox.prompt('New directory name ?', function(name) {
                     if(!Shark.fs.rename(contextMenuPath, name)) {
@@ -304,39 +430,18 @@ var Studio = function() {
                 });
             };
 
-            data = recurse(data);
+            // if just received files list and previous files list are the same,
+            // then there are no files added or removed between the last refresh and now
+            if(JSON.stringify(data) === JSON.stringify(lastPanelDataTree))
+                return false;
 
-            function r(o, c) {
-                if(!isDefined(c))
-                    return false;
-
-                for(var i in o) {
-                    if(o.hasOwnProperty(i)) {
-                        if(!isDefined(c[i]) && isDefined(o[i]))
-                            return false;
-                        else if((isString(o[i]) || isNumber(o[i])) && o[i] != c[i])
-                            return false;
-                        else if(isObject(o[i]))
-                            if(!r(o[i], c[i]))
-                                return false;
-                    }
-                }
-
-                for(var i in c) {
-                    if(c.hasOwnProperty(i)) {
-                        if(!isDefined(o[i]))
-                            return false;
-                    }
-                }
-
-                return true;
-            }
-
-            if(r(data, lastPanelDataTree))
-                return;
-
+            // we save the just received files list
             lastPanelDataTree = data;
 
+            // convert server readDirectory() response to a jsTree object
+            data = recurse(data);
+
+            // we create the files tree (in the panel) with the jsTree library
             $('#panel').replaceWith($.create('div', {id: 'panel', style: $('#panel').attr('style')}).jstree({
                 core: {
                     data: data,
@@ -346,41 +451,37 @@ var Studio = function() {
                 contextmenu: {
                     items: function($node) {
                         selectedNode = $('#' + $node.id);
-                        var path = projectDir + getFullPath($node.id);
+                        var path = projectDir + 'files/' + getFullPath($node.id);
                         contextMenuPath = path;
 
                         if(Shark.fs.existsDirectory(path)) {
                             // that's a directory
 
+                            var newFile = {};
+
+                            var n = config.contextmenu.new.split(',');
+
+                            for(var i = 0; i < n.length; i++) {
+                                for(var j in config.fileTypes) {
+                                    if(config.fileTypes.hasOwnProperty(j)) {
+                                        console.log(config.fileTypes[j].name.toLocaleLowerCase(), n[i].toLocaleLowerCase());
+                                        if(config.fileTypes[j].name.toLocaleLowerCase() === n[i].toLocaleLowerCase()) {
+                                            console.log('Studio.createNewFile(contextMenuPath, "' + n[i] + '", ["' + j + '"]);');
+                                            newFile[n[i]] = {
+                                                label: n[i],
+                                                action: new Function('Studio.createNewFile(contextMenuPath, "' + n[i] + '", ["' + j + '"]);')
+                                            }
+                                        }
+
+                                    }
+                                }
+                            }
+
+
                             return {
                                 New: {
                                     label: 'New',
-                                    submenu: {
-                                        HTML: {
-                                            label: 'HTML',
-                                            action: function() {
-                                               Studio.createNewFile(contextMenuPath, 'HTML', ['htm', 'html']);
-                                            }
-                                        },
-                                        CSS: {
-                                            label: 'CSS',
-                                            action: function() {
-                                                Studio.createNewFile(contextMenuPath, 'CSS', ['css']);
-                                            }
-                                        },
-                                        JavaScript: {
-                                            label: 'JavaScript',
-                                            action: function() {
-                                               Studio.createNewFile(contextMenuPath, 'JavaScript', ['js']);
-                                            }
-                                        },
-                                        JSON: {
-                                            label: 'JSON',
-                                            action: function() {
-                                                Studio.createNewFile(contextMenuPath, 'JSON', ['json']);
-                                            }
-                                        }
-                                    }
+                                    submenu: newFile
                                 },
                                 Rename: {
                                     label: 'Rename',
@@ -389,7 +490,10 @@ var Studio = function() {
                                 Delete: {
                                     label: 'Delete',
                                     action: function() {
-
+                                        bootbox.confirm('Do you really want to remove this directory ? This action cannot be undo !', function(bool) {
+                                            if(bool)
+                                                Shark.fs.removeDirectory(contextMenuPath);
+                                        })
                                     }
                                 },
                                 Properties: {
@@ -402,6 +506,8 @@ var Studio = function() {
                     }
                 }
             }).on('changed.jstree', function(e, data) {
+                // a file or directory has been selected
+
                 var i, j, r = [], p = [];
                 for(i = 0, j = data.selected.length; i < j; i++) {
                     r.push(data.instance.get_node(data.selected[i]).text);
@@ -415,12 +521,16 @@ var Studio = function() {
                 }
 
             }).on('before_open.jstree close_node.jstree', function(e, data) {
+                // a directory has been opened or closed
+
                 $('#' + data.node.a_attr.id).find('i')
                     .toggleClass('fa-folder-o fa-folder-open-o');
             }));
 
+            // hide the projects list which appear at the beginning
             $('#projects').modal('hide');
 
+            // calculate the durey of the refresh
             refreshPanelDurey = (new Date()).getTime() - refreshPanelCounter;
             console.info('Panel updated in ' + refreshPanelDurey + ' ms');
         }
@@ -429,9 +539,11 @@ var Studio = function() {
 
     }
 
+    // set the studio ready to open a specific file
     this.setReadyFor = function(path) {
         var name = path.split('/')[path.split('/').length - 1];
 
+        // we get the type object of the file (stored in config.filesType[<extension>])
         var type = config.fileTypes[name.split('.')[name.split('.').length - 1]] || config.fileTypes['@default'];
 
         editor.getSession().setMode('ace/mode/' + type.mode);
@@ -444,25 +556,32 @@ var Studio = function() {
 
     }
 
+    // set if the current file has been edited
     this.refreshChanges = function(bool) {
 
         var f = this.getActiveFile();
 
+        // if there is no file open
         if(!f) return false;
 
+        // set the edit state of the file
         files[f].hasChanges = bool;
 
+        // add or remove a star to the file name in the tabs bar
         var link = $('#tabs a[data="' + Studio.getActiveFile() + '"]');
 
         if(bool) {
+            // if the file has been edited
             if(!link.find('.hasChanges').length)
                 link.append('<span class="hasChanges">*</span>');
         } else {
+            // if the file hasn't been edited
             link.find('.hasChanges').remove();
         }
 
     };
 
+    // create a file in the editor from an existing file
     this.createFile = function(dir, name, content) {
 
         var activeFile = this.getActiveFile();
@@ -474,6 +593,7 @@ var Studio = function() {
 
         $('#tabs li.active').removeClass('active');
 
+        // create the tab for the file if this file is not already opened in the editor
         if(!$('#tabs').find('a[data="' + path + '"]').length) {
             $('#tabs').append($.create(
                 'li',
@@ -487,7 +607,8 @@ var Studio = function() {
                             content: name
                         }
                     ).click(function () {
-                        //Studio.openFile($(this).attr('data'));
+                        // the tab has been clicked
+
                         edits[Studio.getActiveFile()] = editor.getSession();
                         $('#tabs li.active').removeClass('active');
                         $(this).parent().addClass('active');
@@ -498,39 +619,49 @@ var Studio = function() {
             ));
         }
 
+        // the current file tab is set as active tab
         $('#tabs a[data="' + path + '"]').parent().addClass('active');
 
         editor.setSession(ace.createEditSession(content || ''));
+
+        // set editor ready to open the file
         this.setReadyFor(path);
 
     };
 
+    // create an empty file
     this.createNewFile = function(path, type, exts) {
 
         StudioCreateNewFileExtensions = exts;
         createNewFilePath = path || Shark.fs.chdir();
 
+        // input to user the new file name
         bootbox.prompt('New ' + (type || '') + ' file name ?', function(fileName) {
+            // if a file name has been input
             if(fileName) {
                 if(StudioCreateNewFileExtensions && StudioCreateNewFileExtensions.indexOf(fileName.split('.')[fileName.split('.').length - 1]) === -1)
                     fileName += '.' + StudioCreateNewFileExtensions[0];
 
                 Studio.createFile(createNewFilePath, fileName);
             } else if(fileName !== null) {
+                // if the input has been canceled
                 Studio.createFile(createNewFilePath, 'Untitled.' + (StudioCreateNewFileExtensions ? StudioCreateNewFileExtensions[0] : 'txt'));
             }
         })
 
     };
 
+    // open an existing file
     this.openFile = function(path, allowSizeExceed) {
 
+        // if the file doesn't exists
         if(!Shark.fs.existsFile(path)) {
             return false;
         }
 
         var size = Shark.fs.getFileSize(path);
 
+        // if the size exceed the safe file size
         if(size > config.editor['cancel-file-open-size']) {
             return bootbox.dialog({
                 title: 'File size exceed maximal limit',
@@ -544,6 +675,7 @@ var Studio = function() {
             });
         }
 
+        // if the size exceed the recommanded maximal file size
         if(!allowSizeExceed) {
             if(size > config.editor['max-file-open-size']) {
                 openingFile = path;
@@ -569,6 +701,7 @@ var Studio = function() {
 
         var content = Shark.fs.readFile(path);
 
+        // if can't read the file content
         if(!isDefined(content)) {
             return false;
         }
@@ -577,24 +710,30 @@ var Studio = function() {
         var dir = path.split('/');
         dir.splice(dir.length - 1, 1)
 
+        // open the file in the editor
         this.createFile(dir.join('/'), fileName, content);
 
     };
 
+    // get the current file path
     this.getActiveFile = function() {
 
         return $('#tabs li.active a').attr('data');
 
     };
 
+    // close the current file
     this.closeActiveFile = function(force) {
 
         var file = this.getActiveFile();
 
+        // if there is no file actually opened in the editor
         if(!file)
             return;
 
+        // if the file has been edited
         if(files[file].hasChanges && !force) {
+            // ask user if he want to save changes or no
             return bootbox.dialog({
                 title: 'File has been edited',
                 message: '<h2>This file has been edited</h2>All modifications will be lost.\nDo you really want to close this file ?<br /><br />File : <code>' + this.getActiveFile() + '</code>',
@@ -627,30 +766,36 @@ var Studio = function() {
         delete files[file];
         delete edits[file];
 
+        // remove file tab
         $('#tabs li.active').remove();
 
+        // if there is no another file opened in the editor
         if(!$('#tabs li:first').length) {
+            // set the editor empty
             this.emptyEditor();
-        }
-         else {
+        } else {
+            // open the other file
             this.openFile($('#tabs li:first a').attr('data'));
         }
 
     };
 
+    // save the current file
     this.saveFile = function() {
 
+        // if there is no file actually opened in the editor
         if(!this.getActiveFile()) {
-            // no file opened
             return false;
         }
 
+        // if the current file hasn't been edited
         if(!files[this.getActiveFile()].hasChanges) {
-            // no changes
             return false;
         }
 
+        // if the frame is in commit mode
         if(request.commit) {
+            // if never said that the frame is in commit mode
             if(!_sayedCommitMode) {
                 bootbox.dialog({
                     title: 'Commit mode',
@@ -678,72 +823,84 @@ var Studio = function() {
 
         savingFile = Studio.getActiveFile();
 
-        server('user', {
-            data: {
-                do: 'writeFile',
-                path: savingFile,
-                content: editor.getSession().getValue()
-            },
-            async: false,
-            success: function(ans) {
-                if(ans === 'true') {
-                    console.log('saved : ' + savingFile);
-                    Studio.refreshChanges(false);
+        if(Shark.fs.writeFile(savingFile, editor.getSession().getValue())) {
+            console.log('saved : ' + savingFile);
+            Studio.refreshChanges(false);
 
-                    if(!_sayedSavedFile)
-                        bootbox.dialog({
-                            title: 'File saved',
-                            message: '<h2>Successfully saved <small><code>' + savingFile + '</code></small></h2>',
-                            buttons: {
-                                'Do not show again': {
-                                    label: 'Do not show again',
-                                    className: 'btn-danger',
-                                    callback: function() {
-                                        _sayedSavedFile = true;
-                                    }
-                                },
-                                OK: {
-                                    label: 'OK',
-                                    className: 'btn-success'
-                                }
-                            }
-                        });
-
-                } else {
-                    this.error({responseText:ans});
-                }
-            },
-            error: function(err) {
-                console.error('cannot save : ' + savingFile + ' (server said : ' + err.responseText + ')');
-               
+            if(!_sayedSavedFile) {
                 bootbox.dialog({
-                    title: 'Can\'t save file',
-                    message: '<h2>Can\'t save <small><code>' + savingFile + '</code></small></h2>Server said :<br /><br />' + err.responseText,
+                    title: 'File saved',
+                    message: '<h2>Successfully saved <small><code>' + savingFile + '</code></small></h2>',
                     buttons: {
-                        Retry: {
-                            label: 'Retry',
-                            className: 'btn-success',
+                        'Do not show again': {
+                            label: 'Do not show again',
+                            className: 'btn-danger',
                             callback: function() {
-                                Studio.saveFile();
+                                _sayedSavedFile = true;
                             }
                         },
-                        Cancel: {
-                            label: 'Cancel',
-                            className: 'btn-danger'
+                        OK: {
+                            label: 'OK',
+                            className: 'btn-success'
                         }
                     }
                 });
             }
-        });
+
+            for(var i in projectConfig.fileWatchers) {
+                if(projectConfig.fileWatchers.hasOwnProperty(i)) {
+                    var watcher = projectConfig.fileWatchers[i];
+                    var input = watcher.input;
+
+                    if(watcher['input-type'] === 'path') {
+                        input = '^' + input.escapeRegex().replace(/\\\*/g, '(.*)') + '$';
+                    } else if(watcher['input-type'] === 'regex') {
+                        input = input;
+                    } else {
+                        // unknwon input-type : can't compile file
+                    }
+
+                    input = new RegExp(input);
+                    if(input.test(savingFile.substr(projectDir.length + 6))) {
+                        // this file has to be compiled
+                        var output = savingFile.substr(projectDir.length + 6).replace(input, watcher.output.replace(/\$\{input\}/g, savingFile));
+                        Studio.compile(savingFile, projectDir + 'files/' + output, watcher.compiler);
+                    }
+                }
+            }
+
+        } else {
+            console.error('cannot save : ' + savingFile + ' (server said : ' + err.responseText + ')');
+           
+            bootbox.dialog({
+                title: 'Can\'t save file',
+                message: '<h2>Can\'t save <small><code>' + savingFile + '</code></small></h2>Server said :<br /><br />' + err.responseText,
+                buttons: {
+                    Retry: {
+                        label: 'Retry',
+                        className: 'btn-success',
+                        callback: function() {
+                            Studio.saveFile();
+                        }
+                    },
+                    Cancel: {
+                        label: 'Cancel',
+                        className: 'btn-danger'
+                    }
+                }
+            });
+        }
 
     };
 
+    // set the editor empty
     this.emptyEditor = function() {
 
         editor.setSession(ace.createEditSession(''));
 
     };
 
+    // get a private short link for this project
     this.getPrivateProjectShortLink = function() {
 
         var link = window.location.origin + window.location.pathname + '?surl=';
@@ -762,11 +919,14 @@ var Studio = function() {
 
     };
 
+    // open the visual editor for project settings
     this.projectSettings = function() {
         // project settings
     };
 
+    // open the visual editor for user settings
     this.userSettings = function() {
+        // define function to convert server response for user settings to a jsTree object
         function recurse(obj, headName) {
             var i = [];
             var p = {
@@ -804,11 +964,11 @@ var Studio = function() {
 
         var plugins = [];
 
-        // doesn't work !!!!
-
+        // if the user want to use the 'wholerow' plugin
         if(config.studio.panelWholerow)
             plugins.push('wholerow');
 
+        // create the file tree using jsTree plugin
         var settings = $.create(
             'div',
             {
@@ -821,15 +981,17 @@ var Studio = function() {
             },
             plugins: plugins
         }).on('changed.jstree', function(e, data) {
+            // a setting name has been clicked
+
             var node = data.instance.get_node(data.selected[0]);
 
-            if(node.children.length) {
-                // that's a folder !
-            } else {
+            // if the clicked item is not a folder but a single parameter
+            if(!node.children.length) {
                 var DOMNode = $('#' + node.id);
                 var DOMPath = [DOMNode];
                 var headName = 'legend', protect = [], nodeInConfig = dconf, textPath = [];
 
+                // create the DOM elements path from the highest parent to the clicked item
                 while(DOMNode.parent().parent().attr('role') == 'treeitem') {
                     DOMNode = DOMNode.parent().parent();
                     DOMPath.push(DOMNode);
@@ -840,6 +1002,7 @@ var Studio = function() {
                 var nodeText, nodeInConfig = dconf, foundConf, headName = 'legend', path = [];
                 var types = '', alwaysShow = [];
 
+                // for each parent (and the clicked item)
                 for(var i = 1; i < DOMPath.length; i++) {
                     nodeText = DOMPath[i].find('a:first').text();
                     element = DOMPath[i];
@@ -898,18 +1061,24 @@ var Studio = function() {
                 var panelRows = [], prompt, typeName, t = {}, type;
                 types = types.split('|');
 
+                // for each type defined in the 'type' attribute
                 for(var i = 0; i < types.length; i++) {
                     t[types[i].substr(0, types[i].indexOf(':'))] = types[i].substr(types[i].indexOf(':') + 1);
                 }
 
+                // unlink reference between confAttr and dconf
                 confAttr = cloneObject(confAttr);
 
+                // for each item in the 'always-show' attribute
                 for(var i = 0; i < alwaysShow.length; i++) {
                     if(!isDefined(confAttr[alwaysShow[i]]))
                         confAttr[alwaysShow[i]] = '';
                 }
 
+                // for each attribute
                 for(var i in confAttr) {
+                    // if the attribute is not the 'type' attribute
+                    // and if it's not a read-only attribute
                     if(confAttr.hasOwnProperty(i) && i !== 'type' && protect.indexOf(i) === -1) {
                     
                         type = t[i] || 'text';
@@ -920,6 +1089,7 @@ var Studio = function() {
 
                         type = type.substr(typeName.length + 1);
 
+                        // create the input
                         switch(typeName) {
                             case 'select':
                                 var opt = [];
@@ -976,6 +1146,7 @@ var Studio = function() {
                                 break;
                         }
 
+                        // add the input to the settings div
                         panelRows.push($.create('div', {
                             class: 'form-group',
                             content: prompt
@@ -983,6 +1154,7 @@ var Studio = function() {
                     }
                 }
 
+                // set the right panel content with the settings div
                 $(this).parent().parent().parent().find('div[type="panel"]').html('').append([
                     $.create('h1',{content:$.create('small',{content:$.create('small').text(textPath.join(' / '))})})
                     ].concat(panelRows).concat([
@@ -997,6 +1169,7 @@ var Studio = function() {
 
                             var val;
 
+                            // get the input value
                             switch(node.nodeName.toLocaleLowerCase()) {
 
                                 case 'select':
@@ -1013,13 +1186,16 @@ var Studio = function() {
 
                             }
 
+                            // create the JSON path
                             var path = userSettingsEditing.path.concat(['@attributes', $(node).attr('for')]);
 
                             if(hadError)
                                 return;
 
+                            // try to save the preferences
                             var serve = Shark.fs.serve('changePreferences', path.join('/'), val);
 
+                            // if there was an error
                             if(serve !== 'true') {
                                 hadError = true;
                                 bootbox.dialog({
@@ -1036,6 +1212,7 @@ var Studio = function() {
 
                         });
 
+                        // if there isn't error
                         if(!hadError) {
                             bootbox.dialog({
                                 title: 'Saved preferences',
@@ -1055,31 +1232,13 @@ var Studio = function() {
             }
 
         }).on('before_open.jstree close_node.jstree', function(e, data) {
+            // when a folder is opened or close
+
             $('#' + data.node.a_attr.id).find('i')
                 .toggleClass('fa-folder-o fa-folder-open-o');
         });
 
-        /*var content = $.create('table', {
-            content: [
-                $.create('tr', {
-                    content: [
-                        $.create('td', {
-                            content: settings
-                        }).css('border-right', '1px solid gray').css('padding-right', 5),
-                        $.create('td', {
-                            content: $.create('div', {
-                                content: 
-                                    $.create('div', {
-                                        type: 'panel',
-                                        content: 'Nothing to display'
-                                    }).css('width', '100%').css('height', '100%')
-                            })
-                        }).css('padding-left', 5)
-                    ]
-                })
-            ]
-        }).css('width', '100%');*/
-
+        // create the global editor content
         var content = [
             settings.css({
                 borderRight: '1px solid gray',
@@ -1102,15 +1261,27 @@ var Studio = function() {
                 left: '50%',
                 right: 0,
                 bottom: 0
+            }),
+            $.create('i', {
+                class: 'fa fa-times'
+            }).css({
+                position: 'absolute',
+                top: 5,
+                right: 5
+            }).click(function() {
+                $('#settings').html('').hide();
             })
         ];
 
+        // show the visual editor
         $('#settings').html(content).show();
 
     };
 
+    // logout the current user
     this.logout = function() {
 
+        // if can't logout the current user
         if(Shark.fs.serve('logout') !== 'true') {
             return bootbox.dialog({
                 title: 'Disconnect error',
@@ -1130,8 +1301,122 @@ var Studio = function() {
                 }
             })
         } else {
+            // redirect to the login page
             window.location.href = 'login.php';
         }
+
+    };
+
+    // perform a commit
+    this.commit = function() {
+
+        bootbox.prompt('Please input the commit name :', function(name) {
+
+            if(name === null) {
+                return console.log('Commit canceled');
+            }
+
+            commitMessage = name;
+
+            bootbox.dialog({
+                title: 'SharkDev commit',
+                message: '<h3><i class="fa fa-spinner fa-pulse"></i> Performing commit...</h3>',
+                buttons: {
+                    Close: {
+                        label: 'Close'
+                    }
+                }
+            });
+
+            $('.bootbox .modal-footer button').prop('disabled', true);
+
+            $('#status').text('Performing commit... [' + name + ']');
+
+            server('user', {
+                data: {
+                    do: 'commit',
+                    path: projectDir,
+                    content: name
+                },
+                success: function(text) {
+                    if(text == 'true') {
+                        $('.bootbox .modal-body h3').replaceWith('<br /><p class="bg-success" style="padding: 5px;">Commit performed !</p>');
+                        $('#status').text('Commit performed [' + name + ']');
+                    } else {
+                        $('.bootbox .modal-body h3').replaceWith('<br /><p class="bg-danger" style="padding: 5px;">Commit failed</p>');
+                        $('#status').text('Commit failed [' + name + '] : ' + text);
+                    }
+
+                    console.info('A commit was performed : ' + commitMessage);
+                    $('.bootbox button').prop('disabled', false);
+                },
+                error: function(err) {
+                    console.error('[Commit] Connect error for "' + commitMessage + '" :', err);
+                    $('.bootbox .modal-body').append('<br /><p class="bg-danger" style="padding: 5px;">Commit failed : Cannot contact server (connexion failed)</p>');
+                    $('.bootbox button').prop('disabled', false);
+                    $('#status').text('Commit failed [' + name + '] : Can\'t contact server (status code : ' + err.statusCode + ')');
+                }
+            });
+        });
+
+    };
+
+    // run a compiler on a file or a directory
+    this.compile = function(input, output, compiler) {
+
+        if(!Shark.fs.existsFile(input) && !Shark.fs.existsDirectory(input)) {
+            return false;
+        }
+
+        if(!projectConfig.fileWatchers[compiler]) {
+            return false;
+        }
+
+        var compilerPackage = projectConfig.fileWatchers[compiler].package;
+
+        if(!Shark.fs.existsFile(input) && !compilerPackage.package.acceptDirectories) {
+            $('#terminal-container').slideDown();
+            $('#terminal').terminal().error(compiler + ' compiler doesn\'t support directories !');
+        }
+
+        IO = {
+            echo: function(text) {
+                $('#terminal-container').slideDown(0);
+                $('#terminal').terminal().echo('[' + this.compiler + '] ' + text);
+            },
+
+            error: function(text) {
+                $('#terminal-container').slideDown(0);
+                $('#terminal').terminal().error('[' + this.compiler + '] ' +text);
+            },
+
+            success: function() {
+                // compilation success
+            },
+
+            input: input,
+            inputExt: Shark.fs.getFileExtension(input).toLocaleLowerCase(),
+            output: output,
+            compiler: compiler,
+            parameters: projectConfig.fileWatchers[compiler].parameters,
+
+            read: function(name) {
+                return projectConfig.fileWatchers[this.compiler].package.files[name];
+            },
+
+            get: function(name) {
+                return projectConfig.fileWatchers[this.compiler].vars[name];
+            },
+
+            set: function(name, value) {
+                projectConfig.fileWatchers[this.compiler].vars[name] = value;
+            }
+        };
+
+        compileCode = 'function compile_' + compiler + '(IO) { ' + compilerPackage.compiler + ' } compile_' + compiler + '(IO);';
+        setTimeout(function() {
+            window.eval(compileCode);
+        }, 1000);
 
     };
 
@@ -1141,6 +1426,7 @@ Studio = new Studio();
 
 editor.on('input', function() {
 
+    // when a text is typed in the editor, then the current file has been edited
     Studio.refreshChanges(true);
 
 });
@@ -1149,23 +1435,28 @@ editor.on('input', function() {
 
 var savingFile;
 
+// save current file
 editor.commands.addCommand({
     name: 'save',
     bindKey: {win: 'Ctrl-S', mac: 'Command-S'},
     exec: function(editor) {
         Studio.saveFile();
+        return false;
     }
 });
 
+// close current file
 editor.commands.addCommand({
     name: 'close',
     bindKey: {win: 'Ctrl-Q', mac: 'Command-Q'},
     exec: function(editor) {
         console.log('close keyboard shortcut');
         Studio.closeActiveFile();
+        return false;
     }
 });
 
+// distraction free mode
 var dfmEnabled = false;
 editor.commands.addCommand({
     name: 'distractionFreeMode',
@@ -1173,17 +1464,27 @@ editor.commands.addCommand({
     exec: function(editor) {
         $('#menu, #panel')[dfmEnabled ? 'fadeIn' : 'fadeOut'](1000);
         dfmEnabled = !dfmEnabled;
+        return false;
     }
 });
 
+// open/close the terminal
 var consoleOpened = false;
 editor.commands.addCommand({
     name: 'terminal',
     bindKey: {win: 'F2', mac: 'F2'},
     exec: function(editor) {
         $('#terminal-container').slideToggle(400);
+        return false;
     }
 });
+
+// perform a commit
+editor.commands.addCommand({
+    name: 'commit',
+    bindKey: {win: 'Ctrl-K', mac: 'Command-K'},
+    exec: Studio.commit
+})
 
 /* Display menu bar */
 
@@ -1286,51 +1587,7 @@ var menu = {
     }],
 
     Versionning: ['fa fa-history', {
-        Commit: ['fa fa-check', function() {
-            bootbox.prompt('Please input the commit name :', function(name) {
-
-                if(name === null) {
-                    return console.log('Commit canceled');
-                }
-
-                commitMessage = name;
-
-                bootbox.dialog({
-                    title: 'SharkDev commit',
-                    message: '<h3><i class="fa fa-spinner fa-pulse"></i> Performing commit...</h3>',
-                    buttons: {
-                        Close: {
-                            label: 'Close'
-                        }
-                    }
-                });
-
-                $('.bootbox .modal-footer button').prop('disabled', true);
-
-                server('user', {
-                    data: {
-                        do: 'commit',
-                        path: projectDir,
-                        content: name
-                    },
-                    success: function(text) {
-                        if(text == 'true') {
-                            $('.bootbox .modal-body h3').replaceWith('<br /><p class="bg-success" style="padding: 5px;">Commit performed !</p>');
-                        } else {
-                            $('.bootbox .modal-body h3').replaceWith('<br /><p class="bg-danger" style="padding: 5px;">Commit failed</p>');
-                        }
-
-                        console.info('A commit was performed : ' + commitMessage);
-                        $('.bootbox button').prop('disabled', false);
-                    },
-                    error: function(err) {
-                        console.error('[Commit] Connect error for "' + commitMessage + '" :', err);
-                        $('.bootbox .modal-body').append('<br /><p class="bg-danger" style="padding: 5px;">Commit failed : Cannot contact server (connexion failed)</p>');
-                        $('.bootbox button').prop('disabled', false);
-                    }
-                });
-            });
-        }],
+        Commit: ['fa fa-check', Studio.commit],
 
         'View history': ['fa fa-history', function() {
             var commits = Shark.fs.readDirectory(projectDir + '/versionning');
@@ -1486,19 +1743,24 @@ $('#terminal-tools button[action="clear"]').click(function() {
 
 var panelRefresh;
 var panelRefreshCallback = function() {
-    if(projectDir && Studio && Studio.refreshPanel)
+    if(projectDir)
         Studio.refreshPanel(projectDir.substr(0, projectDir.length - 1));
 }
 
 $(window).on('load', function() {
     
     if(loadProject) {
+        $('#status').text('Loading project : ' + request.project);
         Studio.refreshPanel(request.project);
         Shark.fs.chdir(projectDir + 'files');
-    }
+    } else {
+        if(projectDir)
+            $('#status').text('Loading project : ' + projectDir.substr(1, projectDir.length - 2));
     
+        window.panelRefreshCallback();
+    }
+
     window.panelRefresh = setInterval(window.panelRefreshCallback, 1000);
-    window.panelRefreshCallback();
 
 });
 
@@ -1510,3 +1772,4 @@ if(!request.commit) {
 }
 
 console.info('SharkDev ' + (request.commit ? 'Commit Viewer' : 'Studio') + ' is ready to work !');
+$('#status').text('SharkDev Studio is ready to work !');

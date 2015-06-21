@@ -64,4 +64,9 @@
 		<type extension="scm" name="SharkDev Commit" mode="json" icon="fa:history"/>
 		<type extension="zip,tar,gz,bz2,rar" name="File archive" icon="fa:file-archive-o"/>
 	</files>
+
+	<contextmenu>
+		<param name="new" value="HTML,CSS,Javascript,JSON,SASS,SCSS" />
+	</contextmenu>
+
 </preferences>

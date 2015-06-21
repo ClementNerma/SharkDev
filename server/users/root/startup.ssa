@@ -11,5 +11,5 @@ alias "copy=cp"
 alias "copydir=cp -d"
 alias "ls=read -d"
 
-set_panel_refresh_freq 100
+set_panel_refresh_freq 1000
 echo Startup file runned

@@ -1,0 +1,25 @@
+
+$background: beige;
+$border: 1px solid gray;
+$padding: 5px;
+
+@mixin border-radius($radius) {
+    border-radius: $radius;
+    -webkit-border-radius: $radius;
+    -moz-border-radius: $radius;
+}
+
+body {
+    background-color: $background;
+}
+
+#name, #print {
+    @include border-radius(5px);
+    padding: 5px;
+    border: $border;
+}
+
+#read {
+    @include border-radius(5px);
+    border: $border;
+}

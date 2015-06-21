@@ -18,6 +18,7 @@ $shark = array(
         'bad-API-key'       => 'Bad API key'               ,
         'bad-action'        => 'Bad action'                ,
         'database'          => 'Can\'t connect to DataBase',
+        'not-found'         => 'Not found'                 ,
         'API-done'          => 'API:done'                  ,
         'API-error'         => 'API:error'                 ,
         'no-output'         => '--- no output ---'

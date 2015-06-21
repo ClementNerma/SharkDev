@@ -160,9 +160,9 @@ var Shark = function () {
         var _USER = USER, _PASS = PASS;
         var _commitMode = isDefined(request.commit);
 
-        this.serve = function(action, path, content) {
+        this.serve = function(action, path, content, ignorePath) {
 
-            if(_commitMode) {
+            if(_commitMode && !ignorePath) {
                 path = 'commit:' + (projectDir || '/' + request.project + '/').substr(1, (projectDir || '/' + request.project + '/').length - 2) + '@' + (request.commit) + '|' + (path || '').substr((projectDir || '').length);
             }
 
@@ -180,7 +180,13 @@ var Shark = function () {
             } else {
                 return undefined;
             }
-        }
+        };
+
+        this.serveI = function(action, path, content) {
+
+            return this.serve(action, path, content, true);
+
+        };
 
         this.existsDirectory = function (path) {
 

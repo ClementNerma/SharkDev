@@ -5,7 +5,8 @@
 	"author-type": "GitHub account",
 
 	"package": {
-		"main": "compiler.js",
+		"require": ["sass.js"],
+		"compiler": "compiler.js",
 		"acceptDirectories": false
 	}
 }

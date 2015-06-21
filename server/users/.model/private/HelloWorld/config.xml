@@ -20,6 +20,6 @@
 	</project>
 
 	<filewatchers>
-		<watcher type="SASS" for="*.sass" compiler="SASS" native-compiler="true" />
+		<watcher type="SASS" input="^sass\/(.*)\.(sass|scss)$" input-type="regex" output="css/$1.css" compiler="SASS" native-compiler="true" />
 	</filewatchers>
 </config>

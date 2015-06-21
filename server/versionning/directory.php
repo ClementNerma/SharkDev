@@ -11,7 +11,7 @@ class VersionningDirectory {
 	private $_filesAtLastCommit = array();
 	private $_commits = array();
 
-	public function __construct($dir, $ignore = array(), $commits = array(), $dateFormat = 'H:i:s d-m-Y', $deletedLineMarker = 0) {
+	public function __construct($dir, $ignore = array(), $commits = false, $dateFormat = 'H:i:s d-m-Y', $deletedLineMarker = 0) {
 
 		$this->_dir = $dir;
 
@@ -19,7 +19,7 @@ class VersionningDirectory {
 		$this->_deletedLineMarker = $deletedLineMarker;
 		$this->_ignore = $ignore;
 
-		if($commits) {
+		if($commits !== false) {
 			$this->_commits = $commits;
 			$this->_filesAtLastCommit = $this-> apply(array(), count($commits));
 		} else {
