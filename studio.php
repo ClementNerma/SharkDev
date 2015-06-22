@@ -76,6 +76,7 @@ if(!$_SESSION['shark-user']['username']) {
     </div>
     <div id="settings"></div>
     <div id="status"></div>
+    <div id="runner"></div>
 
     <script type="text/javascript" src="js/bootstrap/jquery.min.js"></script>
     <script type="text/javascript" src="js/bootstrap/bootstrap.min.js"></script>

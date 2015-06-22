@@ -23,7 +23,8 @@ function server(page, params) {
 // definen all global variables
 var projectDir, contextMenuPath, selectedNode, createNewFilePath, commitMessage, lastPanelDataTree;
 var refreshPanelDurey, openingFile, selectedCommitID, _sayedCommitMode, _sayedSavedFile;
-var userSettingsEditing, projectLoaded = false, compileCode, IO;
+var userSettingsEditing, projectLoaded = false, compileCode, IO, openingTabFile
+var forceOpeningTabFile;
 var projectConfig = {
     project: {},
     fileWatchers: {},
@@ -36,7 +37,7 @@ var ace_themes = ['ambiance', 'chaos', 'chrome', 'clouds', 'clouds_midnight', 'c
 var ace_modes = ['abap', 'abc', 'actionscript', 'ada', 'apache_conf', 'applescript', 'asciidoc', 'assembly_x86', 'autohotkey', 'batchfile', 'c9search', 'c_cpp', 'cirru', 'clojure', 'cobol', 'coffee', 'coldfusion', 'csharp', 'css', 'curly', 'dart', 'diff', 'django', 'd', 'dockerfile', 'dot', 'eiffel', 'ejs', 'elixir', 'elm', 'erlang', 'forth', 'ftl', 'gcode', 'gherkin', 'gitignore', 'glsl', 'golang', 'groovy', 'haml', 'handlebars', 'haskell', 'haxe', 'html', 'html_ruby', 'ini', 'io', 'jack', 'jade', 'java', 'javascript', 'jsoniq', 'json', 'jsp', 'jsx', 'julia', 'latex', 'lean', 'less', 'liquid', 'lisp', 'live_script', 'livescript', 'logiql', 'lsl', 'lua', 'luapage', 'lucene', 'makefile', 'markdown', 'mask', 'matlab', 'mel', 'mips_assembler', 'mipsassembler', 'mushcode', 'mysql', 'nix', 'objectivec', 'ocaml', 'pascal', 'perl', 'pgsql', 'php', 'plain_text', 'powershell', 'praat', 'prolog', 'properties', 'protobuf', 'python', 'rdoc', 'rhtml', 'r', 'ruby', 'rust', 'sass', 'scad', 'scala', 'scheme', 'scss', 'sh', 'sjs', 'smarty', 'snippets', 'soy_template', 'space', 'sql', 'sqlserver', 'stylus', 'svg', 'tcl', 'tex', 'textile', 'text', 'toml', 'twig', 'typescript', 'vala', 'vbscript', 'velocity', 'verilog', 'vhdl', 'xml', 'xquery', 'yaml'];
 
 // display, hide and perform many actions on many DOM elements
-$('#settings').hide();
+$('#settings, #runner').hide();
 $('noscript').remove();
 $('#projects').modal({keyboard:false}).modal('hide');
 $('#terminal').terminal(function(command, term) {
@@ -128,6 +129,7 @@ config_set(config.contextmenu, dconf.contextmenu.param);
 var editor = ace.edit('editor');
 editor.$blockScrolling = Infinity;
 editor.setOptions(config.editor.native);
+editor.setOption('enableEmmet', true);
 
 editor.getSession().setMode('ace/mode/' + config.editor['init_mode']);
 
@@ -239,6 +241,44 @@ var files = {};
 var StudioCreateNewFileExtensions;
 
 var Studio = function() {
+
+    this.getFinalContent = function(content, format, path) {
+
+        var formats = {
+            html: {
+                input: /<shark>@import\('(.*?)',( |)'(.*?)'\)<\/shark>/g,
+                output: function(match, attr1, space, attr2) {
+                    if(attr1 === 'stylesheet:css')
+                        return '<style type="text/css" charset="utf-8">' + (Shark.fs.readFile(Shark.fs.normalizePath(attr2, parent)) || '/* Cannot get file : ' + attr2 + ' */') + '</style>';
+
+                    if(attr1 === 'script:javascript')
+                        return '<script type="text/javascript" charset="utf-8">' + (Shark.fs.readFile(Shark.fs.normalizePath(attr2, parent)) || '/* Cannot get file : ' + attr2 + ' */') + '</script>';
+                }
+            },
+            css: {
+                input: /\/\/shark:@import\('(.*?)'\)/g,
+                output: function(match, attr1) {
+                    return Shark.fs.readFile(Shark.fs.normalizePath(attr1, parent)) || '/* Cannot get file : ' + attr2 + ' */';
+                }
+            },
+            js: {
+                input: /SharkImport\('(.*?)'\)/g,
+                output: function(match, attr1) {
+                    return Shark.fs.readFile(Shark.fs.normalizePath(attr1, parent)) || '/* Cannot get file : ' + attr2 + ' */';
+                }
+            }
+        };
+
+        if(!formats[format]) {
+            console.error('SharkDev imports are not supported for ' + format + ' format !');
+            return content;
+        }
+
+        var parent = Shark.fs.getFileDirectory(path);
+
+        return content.replace(formats[format].input, formats[format].output);
+
+    }
 
     // refresh the file list in the left panel
     this.refreshPanel = function(dir) {
@@ -610,10 +650,42 @@ var Studio = function() {
                         // the tab has been clicked
 
                         edits[Studio.getActiveFile()] = editor.getSession();
-                        $('#tabs li.active').removeClass('active');
+
                         $(this).parent().addClass('active');
                         var data = $(this).attr('data');
+                        var content = Shark.fs.readFile(data);
+
+                        if(content && edits[data].getValue() !== content) {
+                            openingTabFile = data;
+                            return bootbox.dialog({
+                                title: 'File has been edited',
+                                message: '<code>' + data.substr(1) + '</code> has been externally edited.<br />Do you want to reload it ?',
+                                buttons: {
+                                    Reload: {
+                                        label: 'Reload',
+                                        className: 'btn-success',
+                                        callback: function() {
+                                            Studio.openFile(openingTabFile);
+                                        }
+                                    },
+                                    Ignore: {
+                                        label: 'Ignore',
+                                        className: 'btn-danger',
+                                        callback: function() {
+                                            forceOpeningTabFile = true;
+                                            $('#tabs a[data="' + openingTabFile + '"]').click();
+                                        }
+                                    }
+                                }
+                            });
+                        }
+
+                        $('#tabs li.active').removeClass('active');
+
                         editor.setSession(edits[data]);
+                        $('#tabs a[data="' + data + '"]').parent().addClass('active');
+
+                        forceOpeningTabFile = false;
                     })
                 }
             ));
@@ -847,27 +919,7 @@ var Studio = function() {
                 });
             }
 
-            for(var i in projectConfig.fileWatchers) {
-                if(projectConfig.fileWatchers.hasOwnProperty(i)) {
-                    var watcher = projectConfig.fileWatchers[i];
-                    var input = watcher.input;
-
-                    if(watcher['input-type'] === 'path') {
-                        input = '^' + input.escapeRegex().replace(/\\\*/g, '(.*)') + '$';
-                    } else if(watcher['input-type'] === 'regex') {
-                        input = input;
-                    } else {
-                        // unknwon input-type : can't compile file
-                    }
-
-                    input = new RegExp(input);
-                    if(input.test(savingFile.substr(projectDir.length + 6))) {
-                        // this file has to be compiled
-                        var output = savingFile.substr(projectDir.length + 6).replace(input, watcher.output.replace(/\$\{input\}/g, savingFile));
-                        Studio.compile(savingFile, projectDir + 'files/' + output, watcher.compiler);
-                    }
-                }
-            }
+            Studio.autocompile(savingFile);    
 
         } else {
             console.error('cannot save : ' + savingFile + ' (server said : ' + err.responseText + ')');
@@ -1361,6 +1413,32 @@ var Studio = function() {
 
     };
 
+    this.autocompile = function(input) {
+
+        for(var i in projectConfig.fileWatchers) {
+            if(projectConfig.fileWatchers.hasOwnProperty(i)) {
+                var watcher = projectConfig.fileWatchers[i];
+                var input = watcher.input;
+
+                if(watcher['input-type'] === 'path') {
+                    input = '^' + input.escapeRegex().replace(/\\\*/g, '(.*)') + '$';
+                } else if(watcher['input-type'] === 'regex') {
+                    input = input;
+                } else {
+                    // unknwon input-type : can't compile file
+                }
+
+                input = new RegExp(input);
+                if(input.test(savingFile.substr(projectDir.length + 6))) {
+                    // this file has to be compiled
+                    var output = savingFile.substr(projectDir.length + 6).replace(input, watcher.output.replace(/\$\{input\}/g, savingFile));
+                    Studio.compile(savingFile, projectDir + 'files/' + output, watcher.compiler);
+                }
+            }
+        }
+
+    };
+
     // run a compiler on a file or a directory
     this.compile = function(input, output, compiler) {
 
@@ -1379,7 +1457,7 @@ var Studio = function() {
             $('#terminal').terminal().error(compiler + ' compiler doesn\'t support directories !');
         }
 
-        IO = {
+        window[compiler + '_compile_IO'] = {
             echo: function(text) {
                 $('#terminal-container').slideDown(0);
                 $('#terminal').terminal().echo('[' + this.compiler + '] ' + text);
@@ -1413,10 +1491,44 @@ var Studio = function() {
             }
         };
 
-        compileCode = 'function compile_' + compiler + '(IO) { ' + compilerPackage.compiler + ' } compile_' + compiler + '(IO);';
+        compileCode = 'function compile_' + compiler + '(IO) { ' + compilerPackage.compiler + ' } compile_' + compiler + '(' + compiler + '_compile_IO);';
         setTimeout(function() {
             window.eval(compileCode);
         }, 1000);
+
+    };
+
+    this.run = function(file) {
+
+        if(!file) return false;
+
+        var content = Shark.fs.readFile(file);
+
+        if(!isDefined(content))
+            return false;
+
+        var source;
+
+        switch(Shark.fs.getFileExtension(file).toLocaleLowerCase()) {
+
+            case 'html':
+            case 'htm':
+                source = 'data:text/html;charset=utf-8,' + encodeURI(this.getFinalContent(content, 'html', file));
+                break;
+
+            case 'js':
+                source = 'data:text/html;charset=utf-8,' + encodeURI('<!DOCTYPE html><html><head><meta charset="utf-8" /></head><body></body><script type="text/javascript" charset="utf-8">' + this.getFinalContent(content, 'js', file) + '</script></html>')
+                break;
+
+        }
+
+        if(!source)
+            return false;
+
+        $('#runner').replaceWith($.create('iframe', {
+            src: source,
+            id: 'runner'
+        }));  
 
     };
 
@@ -1522,16 +1634,19 @@ var menu = {
         }]
     }],
 
-    Account: ['fa fa-user', {
-        Preferences: ['fa fa-wrench', function() {
-            Studio.userSettings();
-        }],
-        
-        A: 'sep',
+    Run: ['fa fa-play', {
+        Run: ['fa fa-play-circle', function() {
 
-        Logout: ['fa fa-sign-out', function() {
-            Studio.logout();
+            Studio.run(Studio.getActiveFile());
+
+        }],
+
+        Stop: ['fa fa-stop', function() {
+
+            $('#runner').replaceWith($.create('div',{id:'runner'},{display:'none'}));
+
         }]
+
     }],
 
     Terminal: ['fa fa-terminal', {
@@ -1678,6 +1793,18 @@ var menu = {
         }]
     }],
 
+    Account: ['fa fa-user', {
+        Preferences: ['fa fa-wrench', function() {
+            Studio.userSettings();
+        }],
+        
+        A: 'sep',
+
+        Logout: ['fa fa-sign-out', function() {
+            Studio.logout();
+        }]
+    }],
+
     Help: ['fa fa-question', {
 
         About: ['fa fa-info', function() {
@@ -1702,11 +1829,18 @@ for(var i in menu) {
         items = [];
 
         for(var j in menu[i][1]) {
-            if(menu[i][1][j] === 'sep') {
-                items.push($.create('li', {
-                    role: 'separator',
-                    class: 'divider'
-                }))
+            if(!isArray(menu[i][1][j])) {
+                if(menu[i][1][j] === 'sep') {
+                    items.push($.create('li', {
+                        role: 'separator',
+                        class: 'divider'
+                    }))
+                } else {
+                    items.push($.create('li', {
+                        class: 'dropdown-header',
+                        content: menu[i][1][j]
+                    }));
+                }
             } else {
                 items.push($.create('li', {
                     content: $.create('a', {

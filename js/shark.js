@@ -305,12 +305,12 @@ var Shark = function () {
 
         var _currentPath = '/';
 
-        this.normalizePath = function (path) {
+        this.normalizePath = function (path, currentPath) {
 
             var startWithSlash = (path.substr(0, 1) === '/');
 
             if(!startWithSlash && path.indexOf(':') === -1)
-                path = _currentPath + (_currentPath.substr(-1) !== '/' ? '/' : '') + path;
+                path = (currentPath || _currentPath) + ((currentPath || _currentPath).substr(-1) !== '/' ? '/' : '') + path;
 
             var parts = path.split('/');
             var safe = [];
@@ -352,6 +352,16 @@ var Shark = function () {
         this.write = this.writeFile;
         this.read = this.readFile;
         this.remove = this.removeFile;
+
+        this.getFileExtension = function(fileName) {
+            return fileName.indexOf('.') !== -1 ? fileName.substr(fileName.lastIndexOf('.') + 1) : false;
+        };
+
+        this.getFileDirectory = function(fileName) {
+            var p = this.normalizePath(fileName).split('/');
+            p.pop();
+            return p.join('/');
+        }
 
     };
 
@@ -524,233 +534,7 @@ var Shark = function () {
         };
 
     };
-
-    /**
-     * Get the extension (after last dot) of a file
-     * @param {string} fileName
-     * @returns {string|boolean} Returns false if no 'dot' is found in the file name
-     */
-
-    this.fs.getFileExtension = function (fileName) {
-        return fileName.indexOf('.') !== -1 ? fileName.substr(fileName.lastIndexOf('.') + 1) : false;
-    };
-
-    /**
-     * Get the type of a file/directory
-     * @param {string} path
-     * @returns
-     */
-
-    this.fs.getType = function (path) {
-
-        var rp = 'unknown';
-
-        if (this.existsFile(path)) {
-            // file
-            var t;
-            rp = (t = this.getFileExtension(path)) ? '.' + t : 'unknown';
-
-            if (rp === '.lnk') {
-                try {
-                    rp = JSON.parse(this.readFile(path));
-                }
-                catch (e) {
-                    return rp;
-                }
-
-                if (rp.type === 'extension') {
-                    // shortcut to extension
-                    return 'app:' + rp.path;
-                } else {
-                    // shortcut to a file/directory
-                    return this.getType(rp.path);
-                }
-            }
-
-        } else if (this.existsDirectory(path)) {
-            // directory
-            rp = 'directory';
-        } else {
-            // doesn't exists
-            rp = 'unknown';
-        }
-
-        return rp;
-
-    };
-
-    /**
-     * Get the icon of a file/directory type
-     * @param {string} type
-     * @returns {string} PNG-Base64 icon
-     */
-
-    this.fs.getTypeIcon = function (type) {
-        if (!isString(type) && !isNumber(type)) type = 'unknown';
-        return (Shark.registry.read('sys/fs/' + (type || 'unknown') + '/icon') || Shark.registry.read('sys/fs/unknown/icon'));
-    };
-
-    /**
-     * Create an HTML shortcut for a file or a directory
-     * @param {string} path
-     * @returns {HTMLElement}
-     */
-
-    this.fs.createHTMLShortcut = function (path) {
-
-        var type = this.getType(path);
-
-        return $.create('div', {class: 'explorer-shortcut', 'explorer-shortcut': path}).append([
-            $.create('img', {
-                class: 'explorer-shortcut-thumb',
-                src: 'data:image/png;base64,' + (type.substr(0, 4) !== 'app:' ? this.getTypeIcon(type) : (Shark.extensions.getPackage(type.substr(4)) || {}).icon)
-            }),
-            $.create('span', {
-                class: 'explorer-shortcut-name',
-                content: path.substr(path.lastIndexOf('/') + 1).replace(/\.lnk$/, '')
-            })
-        ]).click(function () {
-            $(this).toggleClass('explorer-shortcut-selected');
-        })['dblclick'](function () {
-            Shark.console.info('shortcut clicked : ' + this.getAttribute('explorer-shortcut'));
-            Shark.fs.open(this.getAttribute('explorer-shortcut'));
-        })['contextmenu'](function (event) {
-            $(this).toggleClass('explorer-shortcut-selected');
-            Shark.fs.displayShortcutContextMenu(this, event);
-            return false;
-        });
-    };
-
-    /**
-     * Display the context menu of an element shortcut
-     * @param {HTMLElement} shortcut
-     * @param {Event} event
-     */
-
-    this.fs.displayShortcutContextMenu = function (shortcut, event) {
-
-        if (!shortcut || shortcut.nodeType !== Node.ELEMENT_NODE)
-            return Shark.console.error('Cannot display context menu for shortcut : Invalid shortcut HTML elment');
-
-        if (!event || !isDefined(event.clientX) || !isDefined(event.clientY))
-            return Shark.console.error('Cannot display context menu for shortcut : Invalid event');
-
-        // Clear the context menu to add new entries
-        var context = $('#desktop .board-context-menu').html('');
-        // Get file/directory type
-        var type = this.getType(shortcut.lastChild.innerHTML);
-        // Get context menu for this type
-        var entries = (Shark.registry.read('sys/fs/' + type + '/context_menu') || '');
-
-        var _entries, entry;
-
-        for (entry in entries)
-            if (entries.hasOwnProperty(entry))
-                context.append(
-                    $.create('div', {
-                        class: 'board-context-entry'
-                    })
-                        .text(entry)
-                        .click(new Function('$(this).parent().hide(); Shark.extensions.launch(' + JSON.stringify(entries[entry]) + ');'))
-                );
-
-        if (type !== 'directory') {
-            // PATH is a file (because it's not a directory :-))
-            _entries = Shark.registry.read('sys/fs/file/context_menu');
-            for (entry in _entries)
-                if (_entries.hasOwnProperty(entry))
-                    context.append(
-                        $.create('div', {
-                            class: 'board-context-entry'
-                        })
-                            .text(entry)
-                            .click(new Function('$(this).parent().hide(); Shark.extensions.launcher(' + JSON.stringify(_entries[entry]) + ');'))
-                    );
-        }
-
-        context
-            .css({
-                top: event.clientY,
-                left: event.clientX
-            })
-            .show();
-
-        return true;
-
-    };
-
-    /**
-     * Open a file or directory with the corresponding extension or function
-     * @param {string} path
-     * @returns {boolean}
-     */
-
-    this.fs.open = function (path) {
-
-        if (!isString(path)) return Shark.console.error('Can\'t open file : Path must be a string');
-
-        if (this.existsDirectory(path)) {
-            /* Directory */
-            var v = Shark.registry.read('sys/fs/directory/open');
-            if (!isObject(v.args)) v.args = {};
-            v.args.open = path;
-            Shark.console.info('[fs:open] ' + path, v);
-            return Shark.extensions.launcher(v);
-        }
-
-        if (!this.existsFile(path)) {
-            /* Path doesn't exists */
-            return Shark.console.error('Tried to open inexistant file : ' + path);
-        }
-
-        var ext = this.getFileExtension(path);
-
-        if (!ext)
-            return Shark.console.error('Can\'t open file without extension : ' + path);
-
-        if (ext === 'lnk') {
-            /* Shortcut */
-
-            try {
-                var link = JSON.parse(this.readFile(path));
-            }
-
-            catch (e) {
-                return Shark.console.error('Can\'t open link file : ' + path + ' [' + new String(e) + ']');
-            }
-
-            if (missingObjectProperty(link, ['type', 'path']))
-                return Shark.console.error('Can\'t open invalid link : ' + path + ' [Missing field]');
-
-            if (link.type === 'extension') {
-                if (!Shark.extensions.isInstalled((link.path.app || link.path)))
-                    return Shark.console.error('Link point to a non-installed extension : ' + path + ' [' + link.path + ']');
-
-                if (isObject(link.path)) {
-                    var l = link.path;
-                    if (!isObject(l.args)) l.args = {};
-                    l.args.from = path;
-                    return Shark.extensions.launcher(l);
-                } else
-                    return Shark.extensions.launch(link.path, {
-                        from: path
-                    });
-            } else {
-                return this.open(link.path);
-            }
-
-        } else {
-            /* Non-shortcut file */
-
-            var e = this.getFileExtension(path);
-            var app = Shark.registry.read('sys/fs/' + (e ? '.' + e : 'unknwon') + '/open');
-            app.open = path;
-            return Shark.extensions.launcher(app);
-        }
-
-    };
-
-
+    
     this.speedTest = function(callback) {
 
         var d = (new Date()).getTime();
@@ -785,7 +569,90 @@ var Shark = function () {
 
     var _vcsCommit;
     var _alias = {};
+    var _commandsCache = {};
     var _commands = {
+
+        cache: function() {
+
+            if(!this.all[0]) {
+                return this.echo('Commands cache is ' + (config.studio['cache-commands'] ? 'enabled' : 'disabled'));
+            }
+
+            switch(this.all[0]) {
+
+                case 'enable':
+                    if(!config.studio['cache-commands']) {
+                        config.studio['cache-commands'] = true;
+                        this.echo('Commands cache has been enabled');
+                    } else {
+                        this.error('Commands cache is already enabled');
+                    }
+
+                    break;
+
+                case 'disable':
+                    if(config.studio['cache-commands']) {
+                        config.studio['cache-commands'] = false;
+                        this.echo('Commands cache has been disabled');
+                    } else {
+                        this.error('Commands cache is already disabled');
+                    }
+
+                    break;
+
+                case 'content':
+
+                    this.echo('Commands cache :');
+
+                    if(!objSize(_commandsCache)) {
+                        return this.echo('    Commands cache is empty\nTotal : 0 items, 0 bytes');
+                    }
+                    
+                    var m = 0, c = [], s = [], t = 0;;
+
+                    for(var i in _commandsCache) {
+                        if(_commandsCache.hasOwnProperty(i)) {
+                            if(i.length > m) m = i.length;
+                            c.push(i);
+                            s.push(_commandsCache[i].length);
+                            t += s[s.length - 1];
+                        }
+                    }
+
+                    for(var i = 0; i < c.length; i++) {
+                        this.echo('    ' + c[i] + ' '.repeat(m - c[i].length) + ' ' + s[i] + '');
+                    }
+
+                    this.echo('Total : ' + c.length + ' items, ' + t + ' bytes');
+
+                    break;
+
+                case 'size':
+                    var l = 0, s = 0;
+
+                    for(var i in _commandsCache) {
+                        if(_commandsCache.hasOwnProperty(i)) {
+                            l += 1;
+                            s += _commandsCache[i].length;
+                        }
+                    }
+
+                    this.echo('Commands cache :\n    ' + l + ' items\n    ' + s + ' bytes');
+
+                    break;
+
+                case 'clear':
+                    _commandsCache = {};
+                    this.echo('Commands cache cleared');
+                    break;
+
+                default:
+                    this.error('Unknown action : ' + this.all[0]);
+                    break;
+
+            }
+
+        },
 
         echo: function() {
             this.echo(this.all.join(' ').replace(/\[\[(.*?)\](.*?)\]/g, '$2'));
@@ -799,113 +666,6 @@ var Shark = function () {
 
             if(this.argument('n', 'new-line'))
                 this.echo('');
-        },
-
-        editor: function() {
-
-            if(!this.all[0])
-                return this.error('Missing action');
-
-            switch(this.all[0]) {
-
-                case 'create':
-                    if(this.argument('q', 'quiet')) {
-                        Studio.createFile(Shark.fs.chdir(), this.all[1] || 'Untitled.txt', '');
-                    } else {
-                        Studio.createNewFile();
-                    }
-                    break;
-
-                case 'open':
-                    if(!this.all[1])
-                        this.error('Missing file name');
-                    else
-                        Studio.openFile(this.all[1]);
-                    break;
-
-                case 'closeActive':
-                    Studio.closeActiveFile(this.argument('f', 'force'));
-                    break;
-
-                case 'closeAll':
-                    for(var i in files)
-                        if(files.hasOwnProperty(i))
-                            Studio.closeActiveFile(this.argument('f', 'force'));
-                    break;
-
-                default:
-                    this.error('Unknown action : ' + this.all[0]);
-
-            }
-
-        },
-
-        vcs: function() {
-
-            if(this.all[0] === 'use') {
-                if(!this.all[1]) {
-                    _vcsCommit = false;
-                    this.echo('Deleted commit switch');
-                } else {
-                    _vcsCommit = this.all[1];
-                    this.echo('Switched to commit : ' + _vcsCommit);
-                    return;
-                }
-            }
-
-            if(!_vcsCommit && !isString(this.argument('c', 'commit')))
-                return this.error('Missing commit ID');
-
-            if(!this.all[0])
-                return this.error('Missing action');
-
-            var dir = 'commit:' + projectDir.substr(1, projectDir.length - 2) + '@' + (this.argument('c', 'commit') || _vcsCommit) + '|';
-
-            switch(this.all[0]) {
-
-                case 'read':
-                    if(!this.all[1]) {
-                        return this.error('Missing file name');
-                    }
-
-                    if(!this.argument('f', 'from-root')) {
-                        this.all[1] = 'files/' + this.all[1];
-                    }
-
-                    var content = Shark.fs.readFile(dir + this.all[1]);
-
-                    if(!isDefined(content))
-                        this.error(lastError);
-                    else
-                        this.echo(content.replace(/\[\[(.*?)\](.*?)\]/g, '$2'));
-
-                    break;
-
-                case 'ls':
-                    if(!this.all[1]) {
-                        this.all[1] = '';
-                    }
-
-                    if(!this.argument('f', 'from-root')) {
-                        this.all[1] = 'files/' + this.all[1];
-                    }
-
-                    var d = Shark.fs.readDirectory(dir + this.all[1], isDefined(this.argument('r', 'recursively')));
-
-                    if(!d) {
-                        this.error(lastError);
-                    } else {
-                        if(d.length)
-                            this.echo(d.join('\n').replace(/\[\[(.*?)\](.*?)\]/g, '$2'));
-                    }
-
-                    break;
-
-                default:
-                    this.error('Unknown action : ' + this.all[0]);
-                    break;
-            }
-
         },
 
         chdir: function() {
@@ -1037,34 +797,6 @@ var Shark = function () {
                     this.echo(r);
                 }
             }
-        },
-
-        dw: function() {
-
-            if(!this.all[0])
-                return this.error('Missing argument 1 : file location');
-
-            if(!this.all[1])
-                return this.error('Missing argument 2 : download URL');
-
-            var ans = server('user', {
-                data: {
-                    do: 'download',
-                    path: Shark.fs.normalizePath(this.all[0]),
-                    content: this.all[1]
-                },
-                async: false
-            });
-
-            if(ans.status === 200) {
-                if(ans.responseText === 'true')
-                    this.echo('Download success');
-                else
-                    this.error('Download failed : ' + ans.responseText);
-            } else {
-                this.error('Failed to contact server (status code : ' + ans.status + ')');
-            }
-
         },
 
         alias: function() {
@@ -1236,17 +968,32 @@ var Shark = function () {
             }
         }
 
-        if(!_commands[cmd]) {
-            term.error('Command not found : ' + cmd);
-        } else {
-            term.long = long;
-            term.short = short;
-            term.all = all;
-            term.argument = function(short, long) {
-                return isDefined(this.short[short]) ? this.short[short] : this.long[long];
-            };
+        term.long = long;
+        term.short = short;
+        term.all = all;
+        term.argument = function(short, long) {
+            return isDefined(this.short[short]) ? this.short[short] : this.long[long];
+        };
 
-            _commands[cmd].call(term, []);
+        if(!_commands[cmd] && !_commandsCache[cmd]) {
+            var c = Shark.fs.readFile('/env/' + cmd + '.js');
+
+            if(!isDefined(c)) {
+                c = Shark.fs.readFile(cmd + '.js');
+
+                if(!isDefined(c)) {
+                    term.error('Command not found : ' + cmd);
+                } else {
+                    return new Function(['out'], c).call(term, [term]);
+                }
+            } else {
+                if(config.studio['cache-commands'])
+                    _commandsCache[cmd] = c;
+    
+                return new Function(['out'], c).call(term, [term]);
+            }
+        } else {
+            return _commands[cmd] ? _commands[cmd].call(term, []) : new Function(['out'], _commandsCache[cmd]).call(term, [term])
         }
 
     };

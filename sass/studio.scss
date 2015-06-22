@@ -87,6 +87,17 @@ noscript {
     border-top: 1px solid gray;
 }
 
+#runner {
+    position: absolute;
+    z-index: 3;
+    top: 20%;
+    left: 20%;
+    right: 20%;
+    bottom: 20%;
+    border: 2px solid black;
+    background-color: white;
+}
+
 .bootbox table#commitHistory tr:hover {
     cursor: pointer;
 }

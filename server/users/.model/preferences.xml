@@ -9,6 +9,7 @@
 
 	<studio legend="Studio" read-only="name,legend">
 		<param name="panelWholerow" value="true" legend="Enable jsTree wholerow plugin" type="value:boolean"/>
+		<param name="cache-commands" value="true" legend="Cache environment commands when using it" type="value:boolean" />
 	</studio>
 
 	<editor legend="Editor" read-only="name,legend">

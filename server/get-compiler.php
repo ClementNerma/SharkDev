@@ -18,6 +18,10 @@ if(!is_dir($path)) {
 $json = json_decode(file_get_contents($path . '/package.json'), true);
 
 $json['compiler'] = file_get_contents($path . '/' . $json['package']['compiler']);
+
+if(isset($json['runner']))
+	$json['runner'] = file_get_contents($path . '/' . $json['package']['runner']);
+
 $json['files'] = array();
 
 foreach($json['package']['require'] as $i => $file) {

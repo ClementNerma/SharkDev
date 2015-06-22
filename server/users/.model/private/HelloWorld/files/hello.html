@@ -2,11 +2,12 @@
 <html>
 <head>
 	<title>Hello, world !</title>
-	<link type="text/css" rel="stylesheet" href="hello.css" />
+	<shark>@import('stylesheet:css', 'css/hello.css')</shark>
 </head>
 <body>
     <input type="text" id="name" placeholder="Name" /><br />
     <button id="read">Read name !</button>
     <div id="print"></div>
+    <shark>@import('script:javascript', 'hello.js')</shark>
 </body>
 </html>
