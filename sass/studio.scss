@@ -3,7 +3,6 @@ $panelWidth: 15%;
 $terminalHeight: 40%;
 $menuHeight: 50px;
 $tabsHeight: 40px;
-$statusHeight: 20px;
 
 body, #menu, #panel, #tabs, #settings, #status {
     background-color: beige;
@@ -49,6 +48,13 @@ noscript {
     right: 0;
 }
 
+#status {
+    top: $menuHeight + $tabsHeight / 4;
+    right: 10px;
+    height: $tabsHeight / 2;
+    font-family: Open Sans;
+}
+
 #editor {
     top: ($menuHeight + $tabsHeight);
     left: $panelWidth;
@@ -59,7 +65,7 @@ noscript {
 #terminal-container {
     left: $panelWidth;
     right: 0;
-    bottom: $statusHeight;
+    bottom: 0;
     height: $terminalHeight;
 }
 
@@ -77,14 +83,6 @@ noscript {
     right: 0;
     bottom: 0;
     z-index: 1002;
-}
-
-#status {
-    left: 0;
-    right: 0;
-    bottom: 0;
-    height: $statusHeight;
-    border-top: 1px solid gray;
 }
 
 #runner {

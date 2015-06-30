@@ -75,7 +75,7 @@ if(!$_SESSION['shark-user']['username']) {
         <div id="terminal"></div>
     </div>
     <div id="settings"></div>
-    <div id="status"></div>
+    <div id="status"><i id="status-loader" class="fa fa-spinner fa-pulse"></i> <span id="status-text"></span> <span class="fa fa-times" id="close-status"></span></div>
     <div id="runner"></div>
 
     <script type="text/javascript" src="js/bootstrap/jquery.min.js"></script>

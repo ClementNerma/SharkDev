@@ -66,7 +66,7 @@
 		<type extension="zip,tar,gz,bz2,rar" name="File archive" icon="fa:file-archive-o"/>
 	</files>
 
-	<contextmenu>
+	<contextmenu legend="Context menu" head-name="name">
 		<param name="new" value="HTML,CSS,Javascript,JSON,SASS,SCSS" />
 	</contextmenu>
 

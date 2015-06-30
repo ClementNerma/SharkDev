@@ -1,5 +1,6 @@
 
-$('#status').text('Initializing SharkDev Studio environment...');
+$('#status-loader').show();
+$('#status-text').text('Loading SharkDev Studio...');
 
 var SERVER_URL = 'http://localhost/SharkDev/server';
 var serverPages = {
@@ -55,6 +56,9 @@ $('#terminal-container').slideToggle(0);
 $('#commitViewer').hide();
 $('.navbar-brand').click(function() {
     $('#menuitems .fa-user').parent().trigger('click');
+});
+$('#close-status').click(function() {
+    $('#status').fadeOut(500);
 });
 
 // get user's preferences
@@ -219,7 +223,6 @@ if(!request.project || !loadProject) {
                 var type = $(this).parent().attr('data'); // equals to 'public' or 'private'
                 var name = $(this).html(); // project name
 
-                $('#status').text('Loading project : ' + type + '/' + name);
                 Studio.refreshPanel(type + '/' + name);
                 Shark.fs.chdir(projectDir + 'files');
 
@@ -241,6 +244,13 @@ var files = {};
 var StudioCreateNewFileExtensions;
 
 var Studio = function() {
+
+    this.setStatus = function(status, displayLoader) {
+
+        $('#status-text').text(status);
+        $('#status-loader')[displayLoader ? 'show' : 'hide']();
+
+    };
 
     this.getFinalContent = function(content, format, path) {
 
@@ -459,14 +469,38 @@ var Studio = function() {
                 plugins.push('wholerow');
 
             // define the function which permit to rename files and directories
-            var genericRenameAction = function() {
-                bootbox.prompt('New directory name ?', function(name) {
+            var genericCopyAction = function() {
+                var dir = Shark.fs.existsDirectory(contextMenuPath);
+
+                bootbox.prompt((dir?'Directory':'File') + ' copy name ?', function(name) {
+                    if(!Shark.fs['copy' + (dir?'Directory':'File')](contextMenuPath, name)) {
+                        bootbox.alert('Can\'t copy ' + (dir?'directory':'file') + ' !');
+                    }
+                });
+            }
+
+            var genericMoveAction = function() {
+                var dir = Shark.fs.existsDirectory(contextMenuPath);
+
+                bootbox.prompt('New ' + (dir?'directory':'file') + ' name ?', function(name) {
                     if(!Shark.fs.rename(contextMenuPath, name)) {
-                        bootbox.alert('Can\'t rename directory !');
+                        bootbox.alert('Can\'t rename ' + (dir?'directory':'file') + ' !');
                     } else {
                         var link = selectedNode.find('a')[0];
                         link.innerHTML = link.innerHTML.substr(0, link.innerHTML.length - $(link).text().length) + name;
                     }
+                });
+            };
+
+            var genericPropertiesAction = function() {
+                var dir = Shark.fs.existsDirectory(contextMenuPath);
+
+                var content = $('<table><tr><td>Name</td><td>: ' + contextMenuPath.split('/')[contextMenuPath.split('/').length - 1] + '</td></tr><tr><td>Path</td><td>: ' + contextMenuPath + '</td></tr><tr><td>Size</td><td>: ' + Shark.fs.size2str((dir ? Shark.fs.getDirectorySize(contextMenuPath) : Shark.fs.getFileSize(contextMenuPath))) + '</td></tr></table>');
+                content.find('td').css('padding', '5px');
+
+                bootbox.dialog({
+                    title: 'Properties',
+                    message: content
                 });
             };
 
@@ -504,9 +538,9 @@ var Studio = function() {
                             for(var i = 0; i < n.length; i++) {
                                 for(var j in config.fileTypes) {
                                     if(config.fileTypes.hasOwnProperty(j)) {
-                                        console.log(config.fileTypes[j].name.toLocaleLowerCase(), n[i].toLocaleLowerCase());
+                                        //console.log(config.fileTypes[j].name.toLocaleLowerCase(), n[i].toLocaleLowerCase());
                                         if(config.fileTypes[j].name.toLocaleLowerCase() === n[i].toLocaleLowerCase()) {
-                                            console.log('Studio.createNewFile(contextMenuPath, "' + n[i] + '", ["' + j + '"]);');
+                                            //console.log('Studio.createNewFile(contextMenuPath, "' + n[i] + '", ["' + j + '"]);');
                                             newFile[n[i]] = {
                                                 label: n[i],
                                                 action: new Function('Studio.createNewFile(contextMenuPath, "' + n[i] + '", ["' + j + '"]);')
@@ -523,9 +557,13 @@ var Studio = function() {
                                     label: 'New',
                                     submenu: newFile
                                 },
-                                Rename: {
-                                    label: 'Rename',
-                                    action: genericRenameAction
+                                Copy: {
+                                    label: 'Copy',
+                                    action: genericCopyAction
+                                },
+                                Move: {
+                                    label: 'Move',
+                                    action: genericMoveAction
                                 },
                                 Delete: {
                                     label: 'Delete',
@@ -537,11 +575,46 @@ var Studio = function() {
                                     }
                                 },
                                 Properties: {
-                                    label: 'Properties'
+                                    label: 'Properties',
+                                    action: genericPropertiesAction
                                 }
                             }
                         } else {
-                            // that's a file
+                            return {
+                                Open: {
+                                    label: 'Open',
+                                    action: function() {
+                                        Studio.openFile(contextMenuPath);
+                                    }
+                                },
+                                Run: {
+                                    label: 'Run',
+                                    action: function() {
+                                        Studio.run(contextMenuPath);
+                                    }
+                                },
+                                Copy: {
+                                    label: 'Copy',
+                                    action: genericCopyAction
+                                },
+                                Move: {
+                                    label: 'Move',
+                                    action: genericMoveAction
+                                },
+                                Delete: {
+                                    label: 'Delete',
+                                    action: function() {
+                                        bootbox.confirm('Do you really want to remove this file ? This action cannot be undo !', function(bool) {
+                                            if(bool)
+                                                Shark.fs.removeFile(contextMenuPath);
+                                        })
+                                    }
+                                },
+                                Properties: {
+                                    label: 'Properties',
+                                    action: genericPropertiesAction
+                                }
+                            }
                         }
                     }
                 }
@@ -895,8 +968,11 @@ var Studio = function() {
 
         savingFile = Studio.getActiveFile();
 
+        this.setStatus('Saving : ' + savingFile, true);
+
         if(Shark.fs.writeFile(savingFile, editor.getSession().getValue())) {
             console.log('saved : ' + savingFile);
+            this.setStatus('Saved : ' + savingFile);
             Studio.refreshChanges(false);
 
             if(!_sayedSavedFile) {
@@ -923,6 +999,7 @@ var Studio = function() {
 
         } else {
             console.error('cannot save : ' + savingFile + ' (server said : ' + err.responseText + ')');
+            this.setStatus('Failed to save : ' + savingFile);
            
             bootbox.dialog({
                 title: 'Can\'t save file',
@@ -1382,8 +1459,6 @@ var Studio = function() {
 
             $('.bootbox .modal-footer button').prop('disabled', true);
 
-            $('#status').text('Performing commit... [' + name + ']');
-
             server('user', {
                 data: {
                     do: 'commit',
@@ -1393,10 +1468,8 @@ var Studio = function() {
                 success: function(text) {
                     if(text == 'true') {
                         $('.bootbox .modal-body h3').replaceWith('<br /><p class="bg-success" style="padding: 5px;">Commit performed !</p>');
-                        $('#status').text('Commit performed [' + name + ']');
                     } else {
                         $('.bootbox .modal-body h3').replaceWith('<br /><p class="bg-danger" style="padding: 5px;">Commit failed</p>');
-                        $('#status').text('Commit failed [' + name + '] : ' + text);
                     }
 
                     console.info('A commit was performed : ' + commitMessage);
@@ -1406,7 +1479,6 @@ var Studio = function() {
                     console.error('[Commit] Connect error for "' + commitMessage + '" :', err);
                     $('.bootbox .modal-body').append('<br /><p class="bg-danger" style="padding: 5px;">Commit failed : Cannot contact server (connexion failed)</p>');
                     $('.bootbox button').prop('disabled', false);
-                    $('#status').text('Commit failed [' + name + '] : Can\'t contact server (status code : ' + err.statusCode + ')');
                 }
             });
         });
@@ -1450,6 +1522,8 @@ var Studio = function() {
             return false;
         }
 
+        this.setStatus('Compiling [' + compiler + ']' + input, true);
+
         var compilerPackage = projectConfig.fileWatchers[compiler].package;
 
         if(!Shark.fs.existsFile(input) && !compilerPackage.package.acceptDirectories) {
@@ -1465,11 +1539,12 @@ var Studio = function() {
 
             error: function(text) {
                 $('#terminal-container').slideDown(0);
-                $('#terminal').terminal().error('[' + this.compiler + '] ' +text);
+                $('#terminal').terminal().error('[' + this.compiler + '] ' + text);
+                Studio.setStatus('Failed to compiled [' + this.compiler + '] ' + this.input);
             },
 
             success: function() {
-                // compilation success
+                Studio.setStatus('Compiled [' + this.compiler + '] ' + this.input);
             },
 
             input: input,
@@ -1536,10 +1611,15 @@ var Studio = function() {
 
 Studio = new Studio();
 
+var saveChanges;
+
 editor.on('input', function() {
 
     // when a text is typed in the editor, then the current file has been edited
     Studio.refreshChanges(true);
+    saveChanges = setTimeout(function() {
+        Studio.saveFile();
+    }, 1000);
 
 });
 
@@ -1614,11 +1694,11 @@ var menu = {
     }],
 
     Project: ['fa fa-folder-o', {
-        Settings: ['fa fa-wrench', function() {
+        /*Settings: ['fa fa-wrench', function() {
             Studio.projectSettings();
         }],
 
-        A: 'sep',
+        A: 'sep',*/
 
         'Private short link': ['fa fa-share', function() {
             bootbox.dialog({
@@ -1884,13 +1964,9 @@ var panelRefreshCallback = function() {
 $(window).on('load', function() {
     
     if(loadProject) {
-        $('#status').text('Loading project : ' + request.project);
         Studio.refreshPanel(request.project);
         Shark.fs.chdir(projectDir + 'files');
-    } else {
-        if(projectDir)
-            $('#status').text('Loading project : ' + projectDir.substr(1, projectDir.length - 2));
-    
+    } else {    
         window.panelRefreshCallback();
     }
 
@@ -1906,4 +1982,5 @@ if(!request.commit) {
 }
 
 console.info('SharkDev ' + (request.commit ? 'Commit Viewer' : 'Studio') + ' is ready to work !');
-$('#status').text('SharkDev Studio is ready to work !');
+
+Studio.setStatus('SharkDev ' + (request.commit ? 'Commit Viewer' : 'Studio') + ' is ready to work !');

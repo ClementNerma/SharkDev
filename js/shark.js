@@ -217,6 +217,36 @@ var Shark = function () {
 
         };
 
+        this.size2str = function (size) {
+
+            var gb = 0, mb = 0, kb = 0, b = 0;
+
+            while(size > 1024) {
+                while(size > 1024 * 1024) {
+                    while(size > 1024 * 1024 * 1024) {
+                        size -= 1024 * 1024 * 1024;
+                        gb += 1;
+                    }
+                    size -= 1024 * 1024;
+                    mb += 1;
+                }
+                size -= 1024;
+                kb += 1;
+            }
+
+            b = size;
+
+            if(gb)
+                return (gb + mb / 1024).toString() + ' Gb';
+            else if(mb)
+                return (mb + kb / 1024).toString() + ' Mb';
+            else if(kb)
+                return (kb + b / 1024).toString() + ' Kb';
+            else
+                return b + ' bytes';
+
+        }
+
         this.getDirectorySize = function (path) {
 
             var size = parseInt(this.serve('getDirectorySize', this.normalizePath(path)));

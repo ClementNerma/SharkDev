@@ -5,7 +5,7 @@ $shark = array(
         'host' => 'localhost',
         'db'   => 'sharkdev',
         'user' => 'root',
-        'pass' => '',
+        'pass' => 'root',
         'encoding' => 'utf8'
     ),
 
