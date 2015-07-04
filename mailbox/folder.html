@@ -1,0 +1,53 @@
+
+<!--<div class="row col-lg-3" id="mail-action-container">
+	<select class="form-control m-b" id="mail-action">
+		<option>--- Action ---</option>
+		<option action="markAsRead">Mark as read</option>
+		<option action="markAsUnRead">Mark as unread</option>
+		<option action="moveToTrash">Move to trash</option>
+	</select>
+</div>!-->
+
+<div class="row col-lg-12 animated fadeInRight">
+	<div class="mail-box-header">
+	    <form method="get" action="index.html" class="pull-right mail-search">
+	        <div class="input-group">
+	            <input type="text" class="form-control input-sm" name="search" placeholder="Search email">
+	            <div class="input-group-btn">
+	                <button type="submit" class="btn btn-sm btn-primary">
+	                    Search
+	                </button>
+	            </div>
+	        </div>
+	    </form>
+	    <h2>{{folderName}} ({{unreadCount}})</h2>
+	    <div class="mail-tools tooltip-demo m-t-md">
+	        <div class="btn-group pull-right">
+	            <button class="btn btn-white btn-sm"><i class="fa fa-arrow-left"></i></button>
+	            <button class="btn btn-white btn-sm"><i class="fa fa-arrow-right"></i></button>
+
+	        </div>
+	        <button class="btn btn-white btn-sm" data-toggle="tooltip" data-placement="left" title="Refresh inbox" role="refresh-mails-folder" ng-click="reload()"><i class="fa fa-refresh"></i> Refresh</button>
+	        <button class="btn btn-white btn-sm" data-toggle="tooltip" data-placement="top" title="Mark as read" role="mark-mails-as-read"><i class="fa fa-eye"></i> </button>
+	        <button class="btn btn-white btn-sm" data-toggle="tooltip" data-placement="top" title="Mark as unread" role="mark-mails-as-unread"><i class="fa fa-eye-slash"></i> </button>
+	        <!--<button class="btn btn-white btn-sm" data-toggle="tooltip" data-placement="top" title="" data-original-title="Mark as important"><i class="fa fa-exclamation"></i> </button>!-->
+	        <button class="btn btn-white btn-sm" data-toggle="tooltip" data-placement="top" title="" data-original-title="Move to trash" role="move-mails-to-trash"><i class="fa fa-trash-o"></i> </button>
+
+	    </div>
+	</div>
+
+	<div class="mail-box">
+		<table class="table table-hover table-mail" ng-show="folder.length" id="mail-folder">
+			<tr ng-repeat="mail in folder" ng-class="{unread:!mail.opened,read:mail.opened}" ng-show="!filter || mail[filter] == filterValue" ng-init="mail.opened = (mail.opened == '1')">
+			    <td class="check-mail">
+			        <input type="checkbox" class="i-checks" name="select" role="select-mail" />
+			    </td>
+			    <td class="mail-ontact"><a href="#/{{path}}/sender/{{mail.sender}}">{{mail.sender}}</a></td>
+			    <td class="mail-subject"><a href="#/view/{{mail.ID}}">{{mail.subject}}</a></td>
+			    <!--<td class=""><i class="fa fa-paperclip"></i></td>!-->
+			    <td class="text-right mail-date">{{mail.sent}}</td>
+			</tr>
+		</table>
+		<div ng-hide="folder.length" align="center"><span style="font-size:16px;">This folder is empty !</span><br /><br /></div>
+	</div>
+</div>

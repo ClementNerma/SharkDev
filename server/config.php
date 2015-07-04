@@ -1,14 +1,6 @@
 <?php
 
 $shark = array(
-    'db' => array(
-        'host' => 'localhost',
-        'db'   => 'sharkdev',
-        'user' => 'root',
-        'pass' => 'root',
-        'encoding' => 'utf8'
-    ),
-
     'msg' => array(
         'server-error'      => 'internal server error'     ,
         'config-error'      => 'config.php error'          ,
@@ -22,22 +14,6 @@ $shark = array(
         'API-done'          => 'API:done'                  ,
         'API-error'         => 'API:error'                 ,
         'no-output'         => '--- no output ---'
-    ),
-
-    'sys' => array(
-        'robot' => 'SharkDev'
-    ),
-
-    'users' => array(
-        'allow-register' => true
-    ),
-
-    'security' => array(
-        'login-attempts' => array(
-            'enabled' => true,
-            'allow' => 10,
-            'delay' => 30
-        )
     )
 );
 

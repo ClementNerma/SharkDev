@@ -26,7 +26,7 @@ var Shark = function () {
      * @type {string}
      */
 
-    this.SERVER_URL = 'http://localhost/SharkDev/serve/';
+    this.SERVER_URL = 'server';
 
     /**
      * SharkDev console

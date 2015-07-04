@@ -1,12 +1,5 @@
 <?xml version="1.0" encoding="utf-8" ?>
 <config>
-	<param name="versionning-keep-durey" value="" />
-	<param name="versionning-maximal-size" value="" />
-	<param name="versionning-maximal-commits" value="" />
-	<param name="versionning-erase-olders" value="" />
-	<param name="files-max-size" value="" />
-	<param name="project-max-size" value="" />
-
 	<param name="link" value="" />
 	<param name="link-update" value="ask-user" />
 

@@ -2,14 +2,15 @@
 
 chdir(__DIR__);
 
+require_once('../framework/lib.php');
 require_once('config.php');
-require_once('API.php');
+//require_once('API.php');
 
 if(!isset($_GET['name']) || empty($_GET['name'])) {
 	die($shark['msg']['bad-request']);
 }
 
-$path = 'compilers/' . normalizePath($_GET['name']);
+$path = 'compilers/' . Lib::normalizePath($_GET['name']);
 
 if(!is_dir($path)) {
 	die($shark['msg']['not-found']);

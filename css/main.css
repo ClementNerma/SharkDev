@@ -1,0 +1,12 @@
+
+[widget="new-messages"]:hover {
+	cursor: pointer;
+}
+
+[role="view-message"]:hover {
+	cursor: pointer;
+}
+
+#mail-folder {
+	background-color: white;
+}

@@ -1,56 +1,6 @@
 <?php
 
-require_once('database.php');
-
-function debug() {
-	$d = debug_backtrace();
-
-	foreach($d as $i => $v) {
-		echo $v['function'] . ' called at line ' . $v['line'] . ' in ' . $v['file'] . '<br />';
-	}
-
-	exit(0);
-}
-
-function recurse_copy($src,$dst) { 
-    $dir = opendir($src); 
-    @mkdir($dst); 
-    while(false !== ( $file = readdir($dir)) ) { 
-        if (( $file != '.' ) && ( $file != '..' )) { 
-            if ( is_dir($src . '/' . $file) ) { 
-                recurse_copy($src . '/' . $file,$dst . '/' . $file); 
-            } 
-            else { 
-                copy($src . '/' . $file,$dst . '/' . $file); 
-            } 
-        } 
-    } 
-    closedir($dir); 
-}
-
-function normalizePath($path, $encoding="UTF-8") {
-  
-  // Attempt to avoid path encoding problems.
-  $path = iconv($encoding, "$encoding//IGNORE//TRANSLIT", $path);
-
-  // Process the components
-  $parts = explode('/', $path);
-  $safe = array();  
-  foreach ($parts as $idx => $part) {
-    if (empty($part) || ('.' == $part)) {
-      continue;
-    } elseif ('..' == $part) {
-      array_pop($safe);
-      continue;
-    } else {
-      $safe[] = $part;
-    }
-  }
-  
-  // Return the "clean" path
-  $path = implode(DIRECTORY_SEPARATOR, $safe);
-  return $path;
-}
+require_once '../framework/inc.php';
 
 abstract class API {
 
@@ -119,7 +69,7 @@ abstract class API {
 
 		try {
 			mkdir('users/' . $name);
-			recurse_copy('users/.model', 'users/' . $name);
+			Lib::recurseCopy('users/.model', 'users/' . $name);
 		}
 
 		catch(Exception $e) {
@@ -158,7 +108,7 @@ abstract class API {
 		$user = self::allSecure($user);
 		$confidentialityLevel = self::allSecure($confidentialityLevel);
 
-		$user = normalizePath($user);
+		$user = Lib::normalizePath($user);
 
 	}
 
@@ -169,8 +119,8 @@ abstract class API {
 		global $shark;
 		global $db;
 
-		$toUser = normalizePath($toUser);
-		$fromUser = normalizePath($fromUser);
+		$toUser = Lib::normalizePath($toUser);
+		$fromUser = Lib::normalizePath($fromUser);
 
 		if($confidentialityLevel !== 'public' && $confidentialityLevel !== 'private')
 			return $shark['msg']['bad-request'];
@@ -183,7 +133,7 @@ abstract class API {
 
 		try {
 			mkdir('users/' . $toUser . '/' . $confidentialityLevel . '/' . $fromProject);
-			recurse_copy('users/' . $fromUser . '/public/' . $fromProject, 'users/' . $toUser . '/' . $confidentialityLevel . '/' . $fromProject);
+			Lib::recurseCopy('users/' . $fromUser . '/public/' . $fromProject, 'users/' . $toUser . '/' . $confidentialityLevel . '/' . $fromProject);
 		}
 
 		catch(Exception $e) {

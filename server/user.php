@@ -1,71 +1,6 @@
 <?php
 
-set_error_handler(function($no, $msg, $file, $line, $context) {
-    if($no == 8192)
-        return;
-
-    die($msg);
-});
-
-function get_string_between($string, $start, $end){
-    $string = " ".$string;
-    $ini = strpos($string,$start);
-    if ($ini == 0) return "";
-    $ini += strlen($start);
-    $len = strpos($string,$end,$ini) - $ini;
-    return substr($string,$ini,$len);
-}
-
-function deleteDir($dirPath) {
-    if (! is_dir($dirPath)) {
-        throw new InvalidArgumentException("$dirPath must be a directory");
-    }
-    if (substr($dirPath, strlen($dirPath) - 1, 1) != '/') {
-        $dirPath .= '/';
-    }
-    $files = glob($dirPath . '*', GLOB_MARK);
-    foreach ($files as $file) {
-        if (is_dir($file)) {
-            self::deleteDir($file);
-        } else {
-            unlink($file);
-        }
-    }
-    rmdir($dirPath);
-}
-
-function read_directory($path, $recursively, $linear = false, $root = null) {
-
-    if(!$root)
-        $root = $path;
-
-    $c = array();
-
-    $o = scandir($path);
-
-    foreach($o as $k => $v) {
-        if($v !== '.' && $v !== '..') {
-            $p = $linear ? substr($path, strlen($root) + 1) . '/' . $v : $v;
-
-            if(is_dir($path . '/' . $v)) {
-                if(!$linear) {
-                    if(!$recursively)
-                        $c[$p] = 2;
-                    else
-                        $c[$p] = read_directory($path . '/' . $v, true, false, $root);
-                } else
-                    $c = array_merge_recursive($c, read_directory($path . '/' . $v, true, true, $root));
-            } else {
-                $c[$p] = 1;
-            }
-        }
-    }
-
-    return $c;
-
-}
-
-abstract class User {
+abstract class UserAction {
 
     private static $_files = false;
 
@@ -74,7 +9,7 @@ abstract class User {
     }
 
     public static function getUserName() {
-        return $_SESSION['shark-user']['username'];
+        return User::get('pseudo');
     }
 
     public static function existsFile($path) {
@@ -158,7 +93,7 @@ abstract class User {
             return 'Directory not found';
 
         try {
-            deleteDir($path);
+            Lib::deleteDir($path);
         }
 
         catch(Exception $e) {
@@ -193,7 +128,7 @@ abstract class User {
     public static function rename($path, $newName) {
         if(self::$_files) return 'Can\'t write storage in commit mode';
 
-        $newName = normalizePath($newName);
+        $newName = Lib::normalizePath($newName);
 
         if(!file_exists($path)) {
             return 'File/directory not found';
@@ -217,7 +152,7 @@ abstract class User {
     public static function copyFile($from, $to) {
         if(self::$_files) return 'Can\'t write storage in commit mode';
 
-        $to = normalizePath($to);
+        $to = Lib::normalizePath($to);
 
         if(is_dir($from))
             return 'Origin path is a directory';
@@ -247,7 +182,7 @@ abstract class User {
     public static function copyDirectory($from, $to) {
         if(self::$_files) return 'Can\'t write storage in commit mode';
 
-        $to = normalizePath($to);
+        $to = Lib::normalizePath($to);
 
         if(is_file($from))
             return 'Origin path is a file';
@@ -264,7 +199,7 @@ abstract class User {
         }
 
         try {
-            recurse_copy($from, $to);
+            Lib::recurseCopy($from, $to);
         }
 
         catch(Exception $e) {
@@ -324,7 +259,7 @@ abstract class User {
             return;
         }
 
-        return json_encode(read_directory($dir, !!strlen($recursively), false));
+        return json_encode(Lib::readDirectory($dir, !!strlen($recursively), false));
 
     }
 
@@ -468,7 +403,7 @@ abstract class User {
                 }
             }
 
-            $projectDir = __DIR__ . '/users/' . $_SESSION['shark-user']['username'] . '/' . $path;
+            $projectDir = __DIR__ . '/users/' . User::get('pseudo') . '/' . $path;
             $v = new VersionningDirectory($projectDir, array('versionning'), $c);
             $v->commit($content);
 
@@ -510,7 +445,7 @@ abstract class User {
 
     public static function logout() {
 
-        $_SESSION['shark-user']['username'] = false;
+        $_SESSION['skyer-user'] = array('guest' => true);
 
         return 'true';
 
@@ -558,12 +493,11 @@ if(count($_POST) > 10)
 if(isset($_SERVER['HTTP_ORIGIN']))
     header("Access-Control-Allow-Origin: " . $_SERVER['HTTP_ORIGIN'] . "");
 
+require '../framework/inc.php';
 require_once('config.php');
-require_once('session.php');
 require_once('API.php');
-require_once('database.php');
 
-if(!$_SESSION['shark-user']['username']) {
+if(User::isGuest()) {
     die('Needs to be logged in !');
 }
 
@@ -580,7 +514,7 @@ if(!is_string($do) || !is_string($path) || !is_string($content)) {
     die($shark['msg']['bad-request']);
 }
 
-$path = normalizePath($path);
+$path = Lib::normalizePath($path);
 
 if($path === false) {
     die($shark['msg']['bad-path']);
@@ -588,7 +522,7 @@ if($path === false) {
 
 $path = mysql_real_escape_string($path);
 
-$up = __DIR__ . '/users/' . $_SESSION['shark-user']['username'] . '/';
+$up = __DIR__ . '/users/' . User::get('pseudo') . '/';
 chdir($up);
 
 //commit:private/HelloWorld@1|
@@ -598,8 +532,8 @@ if(substr($path, 0, 7) === 'commit:') {
 
     require_once(__DIR__ . '/versionning/directory.php');
 
-    $to = strval(get_string_between($path, '@', '|'));
-    $commitDir = get_string_between($path, ':', '@') . '/versionning/';
+    $to = strval(Lib::getStringBetween($path, '@', '|'));
+    $commitDir = Lib::getStringBetween($path, ':', '@') . '/versionning/';
     $commits = array();
 
     for($i = 1; $i <= $to; $i++) {
@@ -621,14 +555,14 @@ if(substr($path, 0, 7) === 'commit:') {
     $v = new VersionningDirectory(null, array('versionning'), $commits);
     $commitFiles = $v->apply(array(), $to);
 
-    User::setCommitFiles($commitFiles);
+    UserAction::setCommitFiles($commitFiles);
     unset($commitFiles);
 } else {
     // not in commit mode
 }
 
-if(method_exists('User', $do)) {
-    die(forward_static_call_array(array('User', $do), array($path, $content)));
+if(method_exists('UserAction', $do)) {
+    die(forward_static_call_array(array('UserAction', $do), array($path, $content)));
 } else {
     die($shark['msg']['bad-request'] . ' action ' . $do . ' not found');
 }

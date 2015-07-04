@@ -1,114 +1,140 @@
+<?php $allowGuest = true; $hideDefaultView = true; require('framework/inc.php'); Page::setTitle('Register'); ?>
 <?php
 
-require_once(__DIR__ . '/server/config.php');
+Page::css('inspinia/plugins/iCheck/custom');
+Page::css('register');
+Page::js('inspinia/plugins/iCheck/icheck.min');
+Page::js('register');
 
-function element($name, $placeholder, $type, $icon) {
-	global $error;
-	//echo ($error ? ($error[0] == $name ? ' has-error' : '') : '');
-	echo '<div class="form-group' . ($error[0] == $name ? ' has-error' : '') . '"><input name="' . $name . '" type="' . $type . '" class="form-control" value="' . (isset($_POST[$name]) ? $_POST[$name] : null) . '" placeholder="' . $placeholder . '" id="' . $name . '" required /> <label class="login-field-icon fa fa-' . $icon . '" for="' . $name . '"></label></div>' . "\n";
+$registered = $activated = false;
+$err = '';
+
+if(isset($_GET['activate'])) {
+    $user = DataBase::get('users', array(), array('token' => $_GET['activate']));
+
+    if(count($user) && $user !== false) {
+        $pass = md5(uniqid(rand(), true));
+        DataBase::update('users', array('activated' => 1), array('token' => $_GET['activate']));
+        $activated = true;
+    } else {
+        die('<h3>User not found</h3>');
+    }
+} elseif(isset($_POST['submit'])) {
+    $required = array('pseudo', 'firstname', 'lastname', 'fullname', 'email', 'email-confirm', 'password', 'password-confirm');
+
+    foreach($required as $i => $name)
+        if(!isset($_POST[$name]))
+            $err = 'All fields are required';
+        else
+            $_POST[$name] = htmlspecialchars($_POST[$name]);
+
+    if(strlen($_POST['pseudo']) < 5)
+        $err = 'Pseudo must be at least 5 characters';
+    elseif(strlen($_POST['pseudo']) > 30)
+        $err = 'Pseudo must be shorter than 30 characters';
+    elseif(!preg_match('#^([a-zA-Z0-9_\-]+)$#', $_POST['pseudo']))
+        $err = 'Bad pseudo : must be composed of letters, digits, dashes and underscores';
+    elseif(strlen($_POST['password']) < 6)
+        $err = 'Password must be at least 6 characters';
+    elseif(strlen($_POST['password']) > 60)
+        $err = 'Password must be shorter than 60 characters';
+    elseif($_POST['password'] !== $_POST['password-confirm'])
+        $err = 'The two passwords does not match';
+    elseif($_POST['email'] !== $_POST['email-confirm'])
+        $err = 'The two email does not match';
+    elseif(!isset($_POST['agree-terms']) || !$_POST['agree-terms'])
+        $err = 'You must agree terms and privacy';
+    else {
+        $user = DataBase::get('users', array(), array('pseudo' => $_POST['pseudo']));
+
+        if(count($user) && $user !== false)
+            $err = 'This pseudo is already used !';
+        else {
+            $user = DataBase::get('users', array(), array('email' => $_POST['email']));
+
+            if(count($user) && $user !== false)
+                $err = 'This email is already used !';
+            else {
+                $token = md5(uniqid(rand(), true)).md5(uniqid(rand(), true));
+                if(DataBase::insert('users', array(
+                    'pseudo' => $_POST['pseudo'],
+                    'password' => hash('sha384', $_POST['password']),
+                    'email' => $_POST['email'],
+                    'firstname' => $_POST['firstname'],
+                    'lastname' => $_POST['lastname'],
+                    'fullname' => $_POST['firstname'] . ' ' . $_POST['lastname'],
+                    'activated' => 0,
+                    'rights' => 1,
+                    'register' => 'NOW()',
+                    'reputation' => 0,
+                    'token' => $token
+                ))) {
+                    try {
+                        chdir(__DIR__ . '/server/users');
+                        Lib::recurseCopy('.model', $_POST['pseudo']);
+                        sendMail($_POST['email'], Config::get('SITE_TITLE'), Config::get('SITE_EMAIL'), 'Activate your account', 'Dear ' . $_POST['firstname'] . ' ' . $_POST['lastname'] . ",<br /><br />You've just created an account. To activate it, use the link below.<br /><br /><a href=\"http://$_SERVER[HTTP_HOST]$_SERVER[REQUEST_URI]?activate=" . $token . "\">Activate your account</a><br /><br /><small>Sent from Skyer</small>");
+                        $registered = true;
+                    }
+
+                    catch(Exception $e) {
+                        $err = 'Internal disk error. Please try again.';
+                    }
+                } else
+                    $err = 'DataBase error. Please try again.';       
+            }   
+        }
+    }
+
 }
 
 ?>
-<!DOCTYPE html>
-<html>
-<head>
-	<meta charset="utf-8" />
-	<title>Register</title>
-	<link rel="stylesheet" type="text/css" href="css/bootstrap/bootstrap.min.css" />
-	<link rel="stylesheet" type="text/css" href="css/font-awesome/font-awesome.min.css" />
-	<link rel="stylesheet" type="text/css" href="css/flat-ui/flat-ui.min.css" />
-	<link rel="stylesheet" type="text/css" href="css/login-register.css" />
-</head>
-<body>
-	<style type="text/css">label.fa { padding-top: 10px; }</style>
-	<div class="info">
-		<h4>You want to join us ? Create an account in two minutes<br />and get full-access to SharkDev Studio !</h4>
-	<?php if(!$shark['users']['allow-register']) { ?>
-		<h4>We are sorry, but the register page has been disabled by the administrator of the website</h4>
-	<?php } else { ?>
-	</div>
+<style type="text/css">body{padding-bottom: 20px;}</style>
+<div class="middle-box text-center loginscreen   animated fadeInDown">
+    <div>
+        <div>
+            <h1 class="logo-name">IN+</h1>
+        </div>
+        <h3>Register to IN+</h3>
+        <p>Create account to access to <?php echo Config::get('SITE_TITLE'); ?>.</p>
+        <?php if($activated) { ?>
+            <big>Your account has been activated. <a href="login.php">Login now</a></big>
+        <?php } else {
+            if(!$registered) {
+            if($err) { echo '<p class="text-danger">' . $err . '</p>'; } ?>
+        <form class="m-t" role="form" method="POST" action="register.php">
+            <div class="form-group">
+                <input type="text" class="form-control" name="pseudo" placeholder="Pseudo" required="">
+            </div>
+            <div class="form-group">
+                <input type="text" class="form-control" name="firstname" placeholder="First name" required="">
+            </div>
+            <div class="form-group">
+                <input type="text" class="form-control" name="lastname" placeholder="Last name" required="">
+            </div>
+            <div class="form-group">
+                <input type="email" class="form-control" name="email" placeholder="Email" required="">
+            </div>
+            <div class="form-group">
+                <input type="email" class="form-control" name="email-confirm" placeholder="Email (confirm)" required="">
+            </div>
+            <div class="form-group">
+                <input type="password" class="form-control" name="password" placeholder="Password" required="">
+            </div>
+            <div class="form-group">
+                <input type="password" class="form-control" name="password-confirm" placeholder="Password (confirm)" required="">
+            </div>
+            <div class="form-group">
+                <div class="checkbox i-checks"><label> <input type="checkbox" name="agree-terms"><i></i> Agree the <a href="terms.php">terms and policy</a> </label></div>
+            </div>
+            <button type="submit" name="submit" class="btn btn-primary block full-width m-b">Register</button>
 
-	<?php
-
-	$displayForm = true;
-	$error = null;
-
-	if(isset($_POST['register-data'])) {
-		$displayForm = false;
-
-		$verif = array('name', 'password', 'password-confirm', 'email', 'email-confirm');
-
-		foreach($verif as $i => $name) {
-			if(!isset($_POST[$name])) {
-				$error = array($name, ucfirst(str_replace('-confirm', ' confirmation', $name)) . ' is needed !');
-				break;
-			}
-		}
-
-		if(!$error) {
-			if($_POST['password'] != $_POST['password-confirm']) {
-				$error = array('password-confirm', 'The two passwords does not match !');
-				$displayForm = true;
-			} else if($_POST['email'] != $_POST['email-confirm']) {
-				$error = array('email-confirm', 'The two emails does not match !');
-				$displayForm = true;
-			} else {
-				require_once(__DIR__ . '/server/API.php');
-				$APIMessage = API::createUser($_POST['name'], $_POST['password'], $_POST['email']);
-
-				if($APIMessage !== $shark['msg']['API-done']) {
-					// API had an error
-					if($APIMessage !== $shark['msg']['API-error']) {
-						$error = array('', $APIMessage);
-						$displayForm = true;
-					} else {
-						// internal API error ($APIMessage === $shark['msg']['API-error'])
-						$error = array('', 'Internal server error. Please try later.');
-						$displayForm = true;
-					}
-				} else {
-					// registration successfull
-					echo '<div class="alert alert-success" role="alert">Your account has been activated ! You can now use you account in the <a href="login.php">login</a> page !</div>';
-				}
-			}
-		} else {
-			$displayForm = true;
-		}
-
-	}
-
-	if($displayForm) { ?>
-
-	<div id="form">
-		<?php if($error) { echo '<div class="alert alert-danger" role="alert">' . $error[1] . '</div>'; } ?>
-		<div id="error" class="alert alert-danger" style="display: none;" role="alert"></div>
-		<div class="login-form">
-
-		    <?php
-
-		    element('name', 'Username', 'text', 'user');
-		    element('password', 'Password', 'password', 'key');
-		    element('password-confirm', 'Password (retype)', 'password', 'key');
-		    element('email', 'Email', 'email', 'envelope');
-		    element('email-confirm', 'Email (retype)', 'text', 'envelope');
-
-		    ?>
-
-		    <button class="btn btn-primary btn-lg btn-block" id="submitButton">Register</button>
-		</div>
-	</div>
-	<?php } ?>
-	<?php } ?>
-
-	<script type="text/javascript" src="js/bootstrap/jquery.min.js"></script>
-	<script type="text/javascript" src="js/bootstrap/bootstrap.min.js"></script>
-	<script type="text/javascript" src="js/flat-ui/flat-ui.min.js"></script>
-
-	<script type="text/javascript" src="js/cryptojs/rollups/pbkdf2.js"></script>
-    <script type="text/javascript" src="js/cryptojs/rollups/sha512.js"></script>
-    <script type="text/javascript" src="js/cryptojs/rollups/hmac-sha512.js"></script>
-
-	<script type="text/javascript" src="js/lib/types.js"></script>
-	<script type="text/javascript" src="js/register.js"></script>
-</body>
-</html>
+            <p class="text-muted text-center"><small>Already have an account?</small></p>
+            <a class="btn btn-sm btn-white btn-block" href="login.php">Login</a>
+        </form>
+        <?php } else { ?>
+            <big>A confirmation mail has been sent to you. It contains a link to activate your account.</big>
+        <?php }} ?>
+        <!--<p class="m-t"> <small>Inspinia we app framework base on Bootstrap 3 &copy; 2014</small> </p>!-->
+    </div>
+</div>
+<?php Page::send(); ?>

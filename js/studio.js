@@ -1,8 +1,24 @@
 
+function WindowFixSize() {
+    /*$('#page-wrapper,#panel,#editor,#terminal-container').css('height', (document.body.clientHeight - 150) + 'px');
+    $('#terminal-container')*/
+    $('#terminal-container').css({
+        top: document.body.clientHeight * (2/3) + 'px',
+        height: document.body.clientHeight / 3 + 'px'
+    });
+}
+
+document.body.onresize = WindowFixSize;
+WindowFixSize();
+
+window.onbeforeunload = function() {
+    return 'Unsaved work will be lost and you will never be able to recover it !';
+}
+
 $('#status-loader').show();
 $('#status-text').text('Loading SharkDev Studio...');
 
-var SERVER_URL = 'http://localhost/SharkDev/server';
+var SERVER_URL = 'server';
 var serverPages = {
     API: 'HTTP_API.php',
     user: 'user.php'
@@ -52,7 +68,7 @@ $('#terminal').terminal(function(command, term) {
         callback(Shark.autocompleteCommand());
     }
 });
-$('#terminal-container').slideToggle(0);
+$('#terminal-container').hide();
 $('#commitViewer').hide();
 $('.navbar-brand').click(function() {
     $('#menuitems .fa-user').parent().trigger('click');
@@ -1617,6 +1633,7 @@ editor.on('input', function() {
 
     // when a text is typed in the editor, then the current file has been edited
     Studio.refreshChanges(true);
+    clearTimeout(saveChanges);
     saveChanges = setTimeout(function() {
         Studio.saveFile();
     }, 1000);
@@ -1666,7 +1683,7 @@ editor.commands.addCommand({
     name: 'terminal',
     bindKey: {win: 'F2', mac: 'F2'},
     exec: function(editor) {
-        $('#terminal-container').slideToggle(400);
+        $('#terminal-container').toggle();
         return false;
     }
 });
@@ -1731,10 +1748,10 @@ var menu = {
 
     Terminal: ['fa fa-terminal', {
         Show: ['fa fa-eye', function() {
-            $('#terminal-container').slideDown(400);
+            $('#terminal-container').show();
         }],
         Hide: ['fa fa-eye-slash', function() {
-            $('#terminal-container').slideUp(400);
+            $('#terminal-container').hide();
         }],
         Clear: ['fa fa-trash-o', function() {
             $('#terminal').terminal().clear();
@@ -1948,7 +1965,7 @@ for(var i in menu) {
 }
 
 $('#terminal-tools button[action="close"]').click(function() {
-    $('#terminal-container').slideToggle(400);
+    $('#terminal-container').toggle();
 });
 
 $('#terminal-tools button[action="clear"]').click(function() {

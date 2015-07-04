@@ -1,0 +1,56 @@
+
+<div class="col-lg-9 animated fadeInRight" mail="{{mail.ID}}" id="mail-view">
+	<div class="mail-box-header">
+	    <div class="pull-right tooltip-demo">
+	    	<button class="btn btn-white btn-sm" data-toggle="tooltip" data-placement="top" title="Back"><i class="fa fa-angle-double-left" role="back"> Back</i></button>
+	        <a href="#/compose/name/{{mail.sender}}" class="btn btn-white btn-sm" data-toggle="tooltip" data-placement="top" title="Reply"><i class="fa fa-reply"></i> Reply</a>
+	        <button class="btn btn-white btn-sm" data-toggle="tooltip" data-placement="top" title="Print email" role="print-mail"><i class="fa fa-print"></i> </button>
+	        <button class="btn btn-white btn-sm" data-toggle="tooltip" data-placement="top" title="Move to trash" role="move-trash"><i class="fa fa-trash-o"></i> </button>
+	    </div>
+	    <h2>
+	        View Message
+	    </h2>
+	    <div class="mail-tools tooltip-demo m-t-md">
+	        <h3>
+	            <span class="font-noraml">Subject: </span>{{mail.subject}}
+	        </h3>
+	        <h5>
+	            <span class="pull-right font-noraml">{{mail.sent}}</span>
+	            <span class="font-noraml">From: </span>{{mail.sender}}
+	            <span class="font-noraml">To: </span>{{mail.recipient}}
+	        </h5>
+	    </div>
+	</div>
+    <div class="mail-box">
+
+    <div class="mail-body">
+        <!--<p>{{mail.content}}</p>!-->
+        <p ng-bind-html="mail.content | unsafe"></p>
+    </div>
+
+    <div class="mail-body text-right tooltip-demo">
+    	<button class="btn btn-white btn-sm" data-toggle="tooltip" data-placement="top" title="Back"><i class="fa fa-angle-double-left" role="back"> Back</i></button>
+        <a class="btn btn-sm btn-white" href="#/compose/name/{{mail.sender}}"><i class="fa fa-reply"></i> Reply</a>
+        <button title="" data-placement="top" data-toggle="tooltip" type="button" data-original-title="Print" class="btn btn-sm btn-white" role="print-mail"><i class="fa fa-print"></i> Print</button>
+        <button title="" data-placement="top" data-toggle="tooltip" data-original-title="Trash" class="btn btn-sm btn-white" role="move-trash"><i class="fa fa-trash-o"></i> Remove</button>
+    </div>
+    <div class="clearfix"></div>
+
+    </div>
+</div>
+
+<script type="text/javascript">
+	$('[role="print-mail"]').click(function() {
+		var printable = $('.col-lg-9').clone();
+		printable.find('.mail-body.text-right, .pull-right.tooltip-demo').remove();
+		PrintDOM(printable);
+	});
+
+	$('[role="move-trash"]').click(function() {
+		removeMail($('#mail-view').attr('mail'));
+	});
+
+	$('[role="back"]').click(function() {
+		window.history.back();
+	});
+</script>
