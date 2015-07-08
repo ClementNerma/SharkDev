@@ -453,7 +453,7 @@ abstract class UserAction {
 
     public static function changePreferences($path, $value) {
 
-        $path = str_replace(';', '', mysql_real_escape_string($path));
+        $path = str_replace(';', '', $path);
         $xml = simplexml_load_file('preferences.xml');
 
         eval('$xml->' . preg_replace('#\->@attributes\->(.*)#', '["$1"] = $value', preg_replace('#\->([0-9]+)#', '[$1]', str_replace('/', '->', $path))) . ';');
@@ -520,7 +520,7 @@ if($path === false) {
     die($shark['msg']['bad-path']);
 }
 
-$path = mysql_real_escape_string($path);
+//$path = normalizePath($path);
 
 $up = __DIR__ . '/users/' . User::get('pseudo') . '/';
 chdir($up);

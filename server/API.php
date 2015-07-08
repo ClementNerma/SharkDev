@@ -5,7 +5,7 @@ require_once '../framework/inc.php';
 abstract class API {
 
 	private static function allSecure($var) {
-		return mysql_real_escape_string(htmlspecialchars($var));
+		return DataBase::_secure(htmlspecialchars($var));
 	}
 
 	public static function existsUser($name) {

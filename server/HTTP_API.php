@@ -11,7 +11,7 @@ if(count($_POST) > 10)
 	die($shark['msg']['too-large-request']);
 
 foreach($_POST as $k => $v) {
-	$_POST[$k] = mysql_real_escape_string($v);
+	$_POST[$k] = DataBase::_secure($v);
 }
 
 extract($_POST);

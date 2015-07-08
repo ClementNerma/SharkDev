@@ -24,6 +24,10 @@ require __DIR__ . '/mail.php';
 require __DIR__ . '/date.php';
 require __DIR__ . '/lib.php';
 
+if(User::isLoggedIn() && isset($install)) {
+	$_SESSION['skyer-user'] = array('guest' => true);
+}
+
 if(User::isGuest() && !isset($allowGuest)) {
 	header('Location: login.php');
 	die();

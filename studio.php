@@ -69,7 +69,7 @@ Page::js("studio");
     </div>
 </nav>
 
-<div id="panel">Salut !</div>
+<div id="panel"></div>
 <ul id="tabs" class="nav nav-tabs"></ul>
 <div id="editor"></div>
 <div id="terminal-container">

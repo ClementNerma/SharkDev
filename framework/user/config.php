@@ -12,7 +12,7 @@ $config = array(
     "DB_HOST" => "localhost",
     "DB_DATABASE" => "skyer",
     "DB_USER" => "root",
-    "DB_PASSWORD" => "root",
+    "DB_PASSWORD" => "",
     "DB_CHARSET" => "utf8",
     "DB_SECURE" => 1
 );
