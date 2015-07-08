@@ -12,7 +12,12 @@ document.body.onresize = WindowFixSize;
 WindowFixSize();
 
 window.onbeforeunload = function() {
-    return 'Unsaved work will be lost and you will never be able to recover it !';
+    for(var i in files) {
+        if(files.hasOwnProperty(i)) {
+            if(files[i].hasChanges)
+                return 'Unsaved work will be lost and you will never be able to recover it !';
+        }
+    }
 }
 
 $('#status-loader').show();
@@ -41,7 +46,7 @@ function server(page, params) {
 var projectDir, contextMenuPath, selectedNode, createNewFilePath, commitMessage, lastPanelDataTree;
 var refreshPanelDurey, openingFile, selectedCommitID, _sayedCommitMode, _sayedSavedFile;
 var userSettingsEditing, projectLoaded = false, compileCode, IO, openingTabFile
-var forceOpeningTabFile;
+var forceOpeningTabFile, alwaysForceRun, willRunFile;
 var projectConfig = {
     project: {},
     fileWatchers: {},
@@ -675,7 +680,7 @@ var Studio = function() {
         // we get the type object of the file (stored in config.filesType[<extension>])
         var type = config.fileTypes[name.split('.')[name.split('.').length - 1]] || config.fileTypes['@default'];
 
-        editor.getSession().setMode('ace/mode/' + type.mode);
+        editor.getSession().setMode('ace/mode/' + (type.mode || 'plain_text'));
         editor.setOptions(type.editor || {});
 
         if(!files[this.getActiveFile()])
@@ -1589,9 +1594,10 @@ var Studio = function() {
 
     };
 
-    this.run = function(file) {
+    this.run = function(file, force) {
 
-        if(!file) return false;
+        if(!file)
+            return false;
 
         var content = Shark.fs.readFile(file);
 
@@ -1611,14 +1617,82 @@ var Studio = function() {
                 source = 'data:text/html;charset=utf-8,' + encodeURI('<!DOCTYPE html><html><head><meta charset="utf-8" /></head><body></body><script type="text/javascript" charset="utf-8">' + this.getFinalContent(content, 'js', file) + '</script></html>')
                 break;
 
+            case 'ssa':
+                willRunFile = file;
+                bootbox.dialog({
+                    title: 'SharkDev Script Agent Security',
+                    message: '<h1>SharkDev Script Agent Security</h1>You have tried to run a SSA script. Before running it, please note that a script is allowed to create, read, write and delete all files that are in your account, including private and team projects. It can also delete your account.<br />You run the SSA scripts at your own risk !<br />Do you really want to run it ?',
+                    buttons: {
+                        'Continue (risked)': {
+                            label: 'Continue (risked)',
+                            className: 'btn-danger',
+                            callback: function() {
+                                swal({
+                                    html: true,
+                                    title: null,
+                                    text: '<i class="fa fa-cog fa-spin fa-3x fa-fw margin-bottom" id="ssa-progress-cog"></i><br /><br />Running script...<br /><br /><div class="progress"><div id="ssa-progress" class="progress-bar progress-bar-striped active" role="progressbar" aria-valuemin="0" aria-valuemax="100" style="width:0%"></div></div><div id="ssa-progress-cmd"></div>'
+                                });
+                    
+                                Shark.run(content, $('#terminal').terminal(), function(progress, cmd, nextCmd) {
+                                    $('#ssa-progress').css('width', progress + '%');
+                                    $('#ssa-progress-cmd').text(nextCmd);
+
+                                    if(progress === 100) {
+                                        $('#ssa-progress-cog').remove();
+                                        $('#ssa-progress').parent().remove();
+                                        $('#ssa-progress-cmd').text('Finished !');
+                                    }
+                                });
+                            }
+                        },
+                        'Cancel (recommanded)': {
+                            label: 'Cancel (recommanded)',
+                            className: 'btn-success'
+                        }
+                    }
+                });
+                return ;
+                break;
+
         }
 
         if(!source)
             return false;
 
+        if(('sandbox' in document.createElement('iframe')) && !force && !alwaysForceRun) {
+            willRunFile = file;
+
+            return bootbox.dialog({
+                title: 'Sandbox security',
+                message: '<h1>Sandbox security</h1><p style="text-align:justify;">It seems that your browser doesn\'t support <code>sandbox</code> attribute for <code>iframe</code>.<br />This can cause security breach, runnable files can take control of your account, read, write and delete your files (not only this project), or delete your account.<br />Please note that you run files at your own risks.<br />If you are using scripts which you are not author, click on <code>Cancel</code> button.<br /><br />Do you really want to run this file ?</p>',
+                buttons: {
+                    'Continue (risked)': {
+                        label: 'Continue (risked)',
+                        className: 'btn-danger',
+                        callback: function() {
+                            Studio.run(willRunFile, true);
+                        }
+                    },
+                    'Always allow run (risked)': {
+                        label: 'Always allow run (risked)',
+                        className: 'btn-danger',
+                        callback: function() {
+                            alwaysForceRun = true;
+                            Studio.run(willRunFile, true);
+                        }
+                    },
+                    'Cancel (recommanded)': {
+                        label: 'Cancel (recommanded)',
+                        className: 'btn-success'
+                    }
+                }
+            });
+        }
+
         $('#runner').replaceWith($.create('iframe', {
             src: source,
-            id: 'runner'
+            id: 'runner',
+            sandbox: 'allow-scripts'
         }));  
 
     };

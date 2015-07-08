@@ -898,7 +898,9 @@ var Shark = function () {
 
     Object.freeze(_commands);
 
-    this.run = function(command, term) {
+    this.run = function(command, term, onProgress) {
+
+        onProgress = onProgress || function(){};
 
         command = command.trimLeft().replace(/( *)(&&|\|\|)( *)/g, '\n');
         command = command.replace(/\/\*(.*?)\*\//gm, '');
@@ -911,9 +913,11 @@ var Shark = function () {
 
         if(command.indexOf('\n') !== -1) {
             var cmds = command.split('\n');
+            onProgress(0);
 
             for(var i = 0; i < cmds.length; i++) {
                 this.run(cmds[i], term);
+                onProgress(100 / cmds.length * (i + 1), cmds[i], cmds[i + 1]);
             }
 
             return;
