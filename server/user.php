@@ -359,12 +359,12 @@ abstract class UserAction {
 
         $f = scandir('public');
         foreach($f as $k => $v)
-            if($v !== '.' && $v !== '..')
+            if($v !== '.' && $v !== '..' && !is_file('public/' . $v))
                 $o['public'][] = $v;
 
         $f = scandir('private');
         foreach($f as $k => $v)
-            if($v !== '.' && $v !== '..')
+            if($v !== '.' && $v !== '..' && !is_file('private/' . $v))
                 $o['private'][] = $v;
 
         return json_encode($o);
